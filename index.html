@@ -28,7 +28,7 @@
             <div class="py-3 flex justify-between items-center">
                 <div class="flex items-center gap-4">
                     <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2v-6a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                     </div>
                     <div>
                         <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 tracking-tight">ForceAudit Pro</h1>
@@ -160,13 +160,14 @@
 
                 DOM.loadingText.textContent = `Procesando: ${response.csvFilename}...`;
 
+                // 1. CARGAR AUDITORÍAS PREVIAS DESDE EL MASTER
                 const masterAuditMap = new Map();
                 if (response.masterContent && response.masterContent.trim() !== '') {
                     Papa.parse(response.masterContent, {
                         header: true, skipEmptyLines: true,
                         complete: (masterRes) => {
                             masterRes.data.forEach(mRow => {
-                                if (mRow.Task_ID && mRow.Fecha_Revision && mRow.Fecha_Revision.trim() !== '') {
+                                if (mRow.Task_ID) {
                                     masterAuditMap.set(mRow.Task_ID.toString(), mRow);
                                 }
                             });
@@ -174,6 +175,7 @@
                     });
                 }
 
+                // 2. CARGAR EL CSV NUEVO DE HOY Y APLICAR LA LÓGICA INTELIGENTE
                 Papa.parse(response.csvContent, {
                     header: true, skipEmptyLines: true, worker: true,
                     complete: (csvRes) => {
@@ -186,15 +188,27 @@
                             row._id = tId;
                             row.Task_ID = tId;
 
+                            // Verificamos si la tarea ya fue auditada por un humano antes
                             if (masterAuditMap.has(tId)) {
                                 const oldAudit = masterAuditMap.get(tId);
-                                if (oldAudit.Acreditacion === 'acreditar') row.auditStatus = 'OK';
-                                else if (oldAudit.Acreditacion === 'no acreditar' && oldAudit.Motivo_Fraude) row.auditStatus = 'NOK';
-                                else row.auditStatus = null;
+                                
+                                // ¿Tiene fecha de revisión humana previa (OK o Fraude)?
+                                if (oldAudit.Fecha_Revision && oldAudit.Fecha_Revision.trim() !== '') {
+                                    // RESPETAMOS LA DECISIÓN HUMANA INTOCABLE
+                                    if (oldAudit.Acreditacion === 'acreditar') row.auditStatus = 'OK';
+                                    else if (oldAudit.Acreditacion === 'no acreditar' && oldAudit.Motivo_Fraude) row.auditStatus = 'NOK';
+                                    else row.auditStatus = null;
 
-                                row.auditReason = oldAudit.Motivo_Fraude || '';
-                                row.auditDate = oldAudit.Fecha_Revision || '';
+                                    row.auditReason = oldAudit.Motivo_Fraude || '';
+                                    row.auditDate = oldAudit.Fecha_Revision || '';
+                                } else {
+                                    // NO FUE REVISADA: Tomamos los datos frescos del CSV nuevo de hoy (Ej: Validada cambió de 0 a 1)
+                                    row.auditStatus = null;
+                                    row.auditReason = '';
+                                    row.auditDate = '';
+                                }
                             } else {
+                                // TAREA NUEVA
                                 row.auditStatus = null;
                                 row.auditReason = '';
                                 row.auditDate = '';
@@ -280,6 +294,7 @@
             }
         }
 
+        // --- UI Y FILTROS ---
         function updateDashboard(isFiltered = false) {
             DOM.lblBase.textContent = isFiltered ? "Válidas (Filtro)" : "Válidas (Total)";
             const total = filteredTasks.length;
