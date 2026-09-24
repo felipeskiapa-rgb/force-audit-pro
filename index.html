@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Versión Estable</title>
+    <title>ForceAudit Pro | Versión Acumulativa Real</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
                     <div>
                         <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 tracking-tight">ForceAudit Pro</h1>
                         <p class="text-xs font-semibold text-slate-500 flex items-center gap-1" id="syncStatus">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Sincronizado automáticamente
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Base Acumulativa Activa
                         </p>
                     </div>
                 </div>
@@ -146,11 +146,9 @@
         };
         const filterIds = ['f-estado', 'f-region', 'f-distri', 'f-supervisor', 'f-promotor', 'f-dia'];
 
-        // Función clave para evitar la notación científica en números largos
         function formatCodCliente(val) {
             if (!val) return '';
             let str = val.toString().trim();
-            // Si el CSV lo leyó en científico (ej: 1.36008E+13), lo expandimos a texto plano
             if (str.toUpperCase().includes('E+')) {
                 let num = Number(str);
                 if (!isNaN(num)) {
@@ -174,70 +172,91 @@
 
                 DOM.loadingText.textContent = `Procesando: ${response.csvFilename}...`;
 
-                const masterAuditMap = new Map();
+                // 1. PRIMERO CARGAMOS TODO EL HISTORIAL DEL MASTER (Día 23, etc.)
                 if (response.masterContent && response.masterContent.trim() !== '') {
                     Papa.parse(response.masterContent, {
                         header: true, skipEmptyLines: true,
                         complete: (masterRes) => {
                             masterRes.data.forEach(mRow => {
                                 if (mRow.Task_ID) {
-                                    masterAuditMap.set(mRow.Task_ID.toString(), mRow);
+                                    const tId = mRow.Task_ID.toString();
+                                    mRow._id = tId;
+                                    mRow.Task_ID = tId;
+                                    if (mRow.Cod_Cliente) mRow.Cod_Cliente = formatCodCliente(mRow.Cod_Cliente);
+
+                                    // Restauramos su estado de auditoría histórico
+                                    let status = null;
+                                    if (mRow.Fecha_Revision && mRow.Fecha_Revision.trim() !== '') {
+                                        if (mRow.Acreditacion === 'acreditar') status = 'OK';
+                                        else if (mRow.Acreditacion === 'no acreditar' && mRow.Motivo_Fraude) status = 'NOK';
+                                    }
+                                    mRow.auditStatus = status;
+                                    mRow.auditReason = mRow.Motivo_Fraude || '';
+                                    mRow.auditDate = mRow.Fecha_Revision || '';
+
+                                    rawDataMap.set(tId, mRow);
                                 }
                             });
+                            
+                            // 2. DESPUÉS MEZCLAMOS CON EL CSV NUEVO (Días 21 y 22)
+                            procesarCsvNuevo(response.csvContent);
                         }
                     });
+                } else {
+                    procesarCsvNuevo(response.csvContent);
                 }
-
-                Papa.parse(response.csvContent, {
-                    header: true, skipEmptyLines: true, worker: true,
-                    complete: (csvRes) => {
-                        const newRows = csvRes.data;
-
-                        newRows.forEach(row => {
-                            const tId = row.Task_ID ? row.Task_ID.toString() : null;
-                            if (!tId) return;
-
-                            row._id = tId;
-                            row.Task_ID = tId;
-                            
-                            // Forzamos el Cod_Cliente a texto puro para que no se corrompa visualmente
-                            if (row.Cod_Cliente) {
-                                row.Cod_Cliente = formatCodCliente(row.Cod_Cliente);
-                            }
-
-                            if (masterAuditMap.has(tId)) {
-                                const oldAudit = masterAuditMap.get(tId);
-                                if (oldAudit.Fecha_Revision && oldAudit.Fecha_Revision.trim() !== '') {
-                                    if (oldAudit.Acreditacion === 'acreditar') row.auditStatus = 'OK';
-                                    else if (oldAudit.Acreditacion === 'no acreditar' && oldAudit.Motivo_Fraude) row.auditStatus = 'NOK';
-                                    else row.auditStatus = null;
-
-                                    row.auditReason = oldAudit.Motivo_Fraude || '';
-                                    row.auditDate = oldAudit.Fecha_Revision || '';
-                                } else {
-                                    row.auditStatus = null;
-                                    row.auditReason = '';
-                                    row.auditDate = '';
-                                }
-                            } else {
-                                row.auditStatus = null;
-                                row.auditReason = '';
-                                row.auditDate = '';
-                            }
-
-                            rawDataMap.set(tId, row);
-                        });
-
-                        finalizeDataLoad();
-                        guardarEnDrive(true);
-                    }
-                });
 
             } catch(e) {
                 alert("Error crítico de conexión: " + e);
                 DOM.loading.classList.add('hidden');
             }
         };
+
+        function procesarCsvNuevo(csvText) {
+            Papa.parse(csvText, {
+                header: true, skipEmptyLines: true, worker: true,
+                complete: (csvRes) => {
+                    const newRows = csvRes.data;
+
+                    newRows.forEach(row => {
+                        const tId = row.Task_ID ? row.Task_ID.toString() : null;
+                        if (!tId) return;
+
+                        row._id = tId;
+                        row.Task_ID = tId;
+                        if (row.Cod_Cliente) row.Cod_Cliente = formatCodCliente(row.Cod_Cliente);
+
+                        if (rawDataMap.has(tId)) {
+                            // La tarea ya existe en el Master acumulado. 
+                            // Mantenemos la auditoría humana si ya fue revisada.
+                            const oldRow = rawDataMap.get(tId);
+                            if (oldRow.auditDate && oldRow.auditDate.trim() !== '') {
+                                row.auditStatus = oldRow.auditStatus;
+                                row.auditReason = oldRow.auditReason;
+                                row.auditDate = oldRow.auditDate;
+                                row.Acreditacion = oldRow.Acreditacion;
+                                row.Motivo_Fraude = oldRow.Motivo_Fraude;
+                                row.Fecha_Revision = oldRow.Fecha_Revision;
+                            } else {
+                                row.auditStatus = null;
+                                row.auditReason = '';
+                                row.auditDate = '';
+                            }
+                        } else {
+                            // Es una tarea totalmente nueva (Ej: Días 21 y 22) que se suma al acumulado
+                            row.auditStatus = null;
+                            row.auditReason = '';
+                            row.auditDate = '';
+                        }
+
+                        rawDataMap.set(tId, row);
+                    });
+
+                    finalizeDataLoad();
+                    guardarEnDrive(true);
+                }
+            });
+        }
 
         function finalizeDataLoad() {
             const finalRawData = Array.from(rawDataMap.values());
@@ -353,10 +372,9 @@
             });
             updateDashboard(true); 
             
-            // Agrupamos estrictamente por Cod_Cliente para asegurar que se navegue de a un solo PDV
             uniquePDVs = [...new Set(filteredTasks.map(t => t.Cod_Cliente))];
             if (uniquePDVs.length === 0) {
-                DOM.workspace.classList.add('hidden'); DOM.noResults.classList.remove('hidden'); DOM.noResults.classList.add('flex'); return;
+                DOM.workspace.classList.add('hidden'); DOM.noResults.classList.add('hidden'); DOM.noResults.classList.add('flex'); return;
             }
             DOM.noResults.classList.add('hidden'); DOM.noResults.classList.remove('flex');
             DOM.workspace.classList.remove('hidden'); DOM.workspace.classList.add('flex');
@@ -368,7 +386,7 @@
             currentPdvTasks = filteredTasks.filter(t => t.Cod_Cliente === currentPdvId);
             
             DOM.navCounter.textContent = `PDV ${currentPdvIndex + 1} DE ${uniquePDVs.length}`; 
-            DOM.navPdvName.textContent = `PDV: ${currentPdvId}`; // Muestra el número completo sin notación científica
+            DOM.navPdvName.textContent = `PDV: ${currentPdvId}`;
             DOM.navPromotor.textContent = `Promotor/es: ${[...new Set(currentPdvTasks.map(t => t.Promotor))].join(', ')}`;
             DOM.navRegion.textContent = `Región: ${[...new Set(currentPdvTasks.map(t => t.Region))].join(', ')}`;
             DOM.navDistri.textContent = `Distribuidor: ${[...new Set(currentPdvTasks.map(t => t.Distribuidor_Directa))].join(', ')}`;
