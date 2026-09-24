@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Sincronización Automática Diaria</title>
+    <title>ForceAudit Pro | Versión Estable</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -28,7 +28,7 @@
             <div class="py-3 flex justify-between items-center">
                 <div class="flex items-center gap-4">
                     <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-200">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2v-6a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                     </div>
                     <div>
                         <h1 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 tracking-tight">ForceAudit Pro</h1>
@@ -146,6 +146,20 @@
         };
         const filterIds = ['f-estado', 'f-region', 'f-distri', 'f-supervisor', 'f-promotor', 'f-dia'];
 
+        // Función clave para evitar la notación científica en números largos
+        function formatCodCliente(val) {
+            if (!val) return '';
+            let str = val.toString().trim();
+            // Si el CSV lo leyó en científico (ej: 1.36008E+13), lo expandimos a texto plano
+            if (str.toUpperCase().includes('E+')) {
+                let num = Number(str);
+                if (!isNaN(num)) {
+                    return num.toLocaleString('fullwide', { useGrouping: false });
+                }
+            }
+            return str;
+        }
+
         window.onload = async () => {
             try {
                 DOM.loadingText.textContent = "Conectando con Google Drive...";
@@ -160,7 +174,6 @@
 
                 DOM.loadingText.textContent = `Procesando: ${response.csvFilename}...`;
 
-                // 1. CARGAR AUDITORÍAS PREVIAS DESDE EL MASTER
                 const masterAuditMap = new Map();
                 if (response.masterContent && response.masterContent.trim() !== '') {
                     Papa.parse(response.masterContent, {
@@ -175,7 +188,6 @@
                     });
                 }
 
-                // 2. CARGAR EL CSV NUEVO DE HOY Y APLICAR LA LÓGICA INTELIGENTE
                 Papa.parse(response.csvContent, {
                     header: true, skipEmptyLines: true, worker: true,
                     complete: (csvRes) => {
@@ -187,14 +199,15 @@
 
                             row._id = tId;
                             row.Task_ID = tId;
+                            
+                            // Forzamos el Cod_Cliente a texto puro para que no se corrompa visualmente
+                            if (row.Cod_Cliente) {
+                                row.Cod_Cliente = formatCodCliente(row.Cod_Cliente);
+                            }
 
-                            // Verificamos si la tarea ya fue auditada por un humano antes
                             if (masterAuditMap.has(tId)) {
                                 const oldAudit = masterAuditMap.get(tId);
-                                
-                                // ¿Tiene fecha de revisión humana previa (OK o Fraude)?
                                 if (oldAudit.Fecha_Revision && oldAudit.Fecha_Revision.trim() !== '') {
-                                    // RESPETAMOS LA DECISIÓN HUMANA INTOCABLE
                                     if (oldAudit.Acreditacion === 'acreditar') row.auditStatus = 'OK';
                                     else if (oldAudit.Acreditacion === 'no acreditar' && oldAudit.Motivo_Fraude) row.auditStatus = 'NOK';
                                     else row.auditStatus = null;
@@ -202,13 +215,11 @@
                                     row.auditReason = oldAudit.Motivo_Fraude || '';
                                     row.auditDate = oldAudit.Fecha_Revision || '';
                                 } else {
-                                    // NO FUE REVISADA: Tomamos los datos frescos del CSV nuevo de hoy (Ej: Validada cambió de 0 a 1)
                                     row.auditStatus = null;
                                     row.auditReason = '';
                                     row.auditDate = '';
                                 }
                             } else {
-                                // TAREA NUEVA
                                 row.auditStatus = null;
                                 row.auditReason = '';
                                 row.auditDate = '';
@@ -294,7 +305,6 @@
             }
         }
 
-        // --- UI Y FILTROS ---
         function updateDashboard(isFiltered = false) {
             DOM.lblBase.textContent = isFiltered ? "Válidas (Filtro)" : "Válidas (Total)";
             const total = filteredTasks.length;
@@ -342,6 +352,8 @@
                        (!vSup || t.Supervisor === vSup) && (!vPro || t.Promotor === vPro) && (!vDia || t.Dia === vDia);
             });
             updateDashboard(true); 
+            
+            // Agrupamos estrictamente por Cod_Cliente para asegurar que se navegue de a un solo PDV
             uniquePDVs = [...new Set(filteredTasks.map(t => t.Cod_Cliente))];
             if (uniquePDVs.length === 0) {
                 DOM.workspace.classList.add('hidden'); DOM.noResults.classList.remove('hidden'); DOM.noResults.classList.add('flex'); return;
@@ -355,7 +367,8 @@
             const currentPdvId = uniquePDVs[currentPdvIndex];
             currentPdvTasks = filteredTasks.filter(t => t.Cod_Cliente === currentPdvId);
             
-            DOM.navCounter.textContent = `PDV ${currentPdvIndex + 1} DE ${uniquePDVs.length}`; DOM.navPdvName.textContent = `PDV: ${currentPdvId}`;
+            DOM.navCounter.textContent = `PDV ${currentPdvIndex + 1} DE ${uniquePDVs.length}`; 
+            DOM.navPdvName.textContent = `PDV: ${currentPdvId}`; // Muestra el número completo sin notación científica
             DOM.navPromotor.textContent = `Promotor/es: ${[...new Set(currentPdvTasks.map(t => t.Promotor))].join(', ')}`;
             DOM.navRegion.textContent = `Región: ${[...new Set(currentPdvTasks.map(t => t.Region))].join(', ')}`;
             DOM.navDistri.textContent = `Distribuidor: ${[...new Set(currentPdvTasks.map(t => t.Distribuidor_Directa))].join(', ')}`;
