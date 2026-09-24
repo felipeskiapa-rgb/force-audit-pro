@@ -46,15 +46,15 @@
                 </div>
             </div>
 
-            <!-- Filtros -->
+            <!-- Filtros (Ahora con anchos más grandes para evitar textos cortados) -->
             <div id="filtersSection" class="hidden pb-3 flex flex-wrap gap-3 items-center text-sm">
-                <select id="f-estado" class="bg-indigo-50 border-indigo-200 text-indigo-800 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-300 shadow-sm transition-all w-36 font-bold"><option value="">Estado (Todos)</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
+                <select id="f-estado" class="bg-indigo-50 border-indigo-200 text-indigo-800 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-300 shadow-sm transition-all w-40 font-bold"><option value="">Estado (Todos)</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
                 <div class="h-6 w-px bg-slate-300 mx-1"></div>
-                <select id="f-region" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-32 font-medium"><option value="">Región</option></select>
-                <select id="f-distri" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-48 truncate font-medium"><option value="">Distribuidor</option></select>
-                <select id="f-supervisor" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-32 font-medium"><option value="">Supervisor</option></select>
-                <select id="f-promotor" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-32 font-medium"><option value="">Promotor</option></select>
-                <select id="f-dia" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-32 font-medium"><option value="">Día</option></select>
+                <select id="f-region" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-56 truncate font-medium"><option value="">Todas las Regiones</option></select>
+                <select id="f-distri" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-72 truncate font-medium"><option value="">Todos los Distribuidores</option></select>
+                <select id="f-supervisor" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-64 truncate font-medium"><option value="">Todos los Supervisores</option></select>
+                <select id="f-promotor" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-64 truncate font-medium"><option value="">Todos los Promotores</option></select>
+                <select id="f-dia" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-40 truncate font-medium"><option value="">Todos los Días</option></select>
                 <button onclick="resetFilters()" class="ml-auto flex items-center gap-1 text-slate-400 hover:text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">Limpiar Filtros</button>
             </div>
         </div>
@@ -172,7 +172,6 @@
 
                 DOM.loadingText.textContent = `Procesando: ${response.csvFilename}...`;
 
-                // 1. PRIMERO CARGAMOS TODO EL HISTORIAL DEL MASTER (Día 23, etc.)
                 if (response.masterContent && response.masterContent.trim() !== '') {
                     Papa.parse(response.masterContent, {
                         header: true, skipEmptyLines: true,
@@ -184,7 +183,6 @@
                                     mRow.Task_ID = tId;
                                     if (mRow.Cod_Cliente) mRow.Cod_Cliente = formatCodCliente(mRow.Cod_Cliente);
 
-                                    // Restauramos su estado de auditoría histórico
                                     let status = null;
                                     if (mRow.Fecha_Revision && mRow.Fecha_Revision.trim() !== '') {
                                         if (mRow.Acreditacion === 'acreditar') status = 'OK';
@@ -197,8 +195,6 @@
                                     rawDataMap.set(tId, mRow);
                                 }
                             });
-                            
-                            // 2. DESPUÉS MEZCLAMOS CON EL CSV NUEVO (Días 21 y 22)
                             procesarCsvNuevo(response.csvContent);
                         }
                     });
@@ -227,8 +223,6 @@
                         if (row.Cod_Cliente) row.Cod_Cliente = formatCodCliente(row.Cod_Cliente);
 
                         if (rawDataMap.has(tId)) {
-                            // La tarea ya existe en el Master acumulado. 
-                            // Mantenemos la auditoría humana si ya fue revisada.
                             const oldRow = rawDataMap.get(tId);
                             if (oldRow.auditDate && oldRow.auditDate.trim() !== '') {
                                 row.auditStatus = oldRow.auditStatus;
@@ -243,7 +237,6 @@
                                 row.auditDate = '';
                             }
                         } else {
-                            // Es una tarea totalmente nueva (Ej: Días 21 y 22) que se suma al acumulado
                             row.auditStatus = null;
                             row.auditReason = '';
                             row.auditDate = '';
@@ -338,47 +331,93 @@
             if (rawDataMap.size > 0) DOM.btnSaveDrive.classList.remove('hidden'); else DOM.btnSaveDrive.classList.add('hidden');
         }
 
+        // --- SISTEMA DE FILTROS EN CASCADA INTELIGENTE ---
+        function updateSelectOptions(id, tasksForThisSelect, key, currentValue, defaultText) {
+            const sel = document.getElementById(id);
+            const uniqueVals = [...new Set(tasksForThisSelect.map(t => t[key]).filter(Boolean))].sort();
+            
+            sel.innerHTML = `<option value="">${defaultText}</option>`;
+            uniqueVals.forEach(v => { 
+                const opt = document.createElement('option'); 
+                opt.value = v; 
+                opt.textContent = v; 
+                if (v === currentValue) opt.selected = true;
+                sel.appendChild(opt); 
+            });
+        }
+
         function initFilters() {
             DOM.filtersSec.classList.remove('hidden');
-            const getUnique = (key) => [...new Set(allTasks.map(t => t[key]).filter(Boolean))].sort();
-            fillSelect('f-region', getUnique('Region'), 'Todas las Regiones'); fillSelect('f-distri', getUnique('Distribuidor_Directa'), 'Todos los Distribuidores');
-            fillSelect('f-supervisor', getUnique('Supervisor'), 'Todos los Supervisores'); fillSelect('f-promotor', getUnique('Promotor'), 'Todos los Promotores'); fillSelect('f-dia', getUnique('Dia'), 'Seleccionar Día');
-            filterIds.forEach(id => { document.getElementById(id).addEventListener('change', applyFilters); });
+            
+            updateSelectOptions('f-region', allTasks, 'Region', '', 'Todas las Regiones');
+            updateSelectOptions('f-distri', allTasks, 'Distribuidor_Directa', '', 'Todos los Distribuidores');
+            updateSelectOptions('f-supervisor', allTasks, 'Supervisor', '', 'Todos los Supervisores');
+            updateSelectOptions('f-promotor', allTasks, 'Promotor', '', 'Todos los Promotores');
+            updateSelectOptions('f-dia', allTasks, 'Dia', '', 'Todos los Días');
+
+            filterIds.forEach(id => { 
+                document.getElementById(id).onchange = applyFilters; 
+            });
         }
-        function fillSelect(id, values, defaultText) {
-            const sel = document.getElementById(id); sel.innerHTML = `<option value="">${defaultText}</option>`;
-            values.forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.textContent = v; sel.appendChild(opt); });
-        }
+
         window.resetFilters = () => {
-            filterIds.forEach(id => document.getElementById(id).value = ''); filteredTasks = [...allTasks]; 
-            DOM.workspace.classList.add('hidden'); DOM.noResults.classList.add('hidden');
-            DOM.startState.classList.remove('hidden'); DOM.startState.classList.add('flex'); updateDashboard(false);
+            filterIds.forEach(id => document.getElementById(id).value = ''); 
+            filteredTasks = [...allTasks]; 
+            initFilters(); // Resetea las opciones a su estado natural
+            DOM.workspace.classList.add('hidden'); 
+            DOM.noResults.classList.add('hidden');
+            DOM.startState.classList.remove('hidden'); 
+            DOM.startState.classList.add('flex'); 
+            updateDashboard(false);
         };
 
         function applyFilters() {
-            const vEst = document.getElementById('f-estado').value; const vReg = document.getElementById('f-region').value;
-            const vDis = document.getElementById('f-distri').value; const vSup = document.getElementById('f-supervisor').value;
-            const vPro = document.getElementById('f-promotor').value; const vDia = document.getElementById('f-dia').value;
+            const vEst = document.getElementById('f-estado').value; 
+            const vReg = document.getElementById('f-region').value;
+            const vDis = document.getElementById('f-distri').value; 
+            const vSup = document.getElementById('f-supervisor').value;
+            const vPro = document.getElementById('f-promotor').value; 
+            const vDia = document.getElementById('f-dia').value;
+            
             const isFiltered = (vEst || vReg || vDis || vSup || vPro || vDia);
             if (!isFiltered) { resetFilters(); return; }
 
-            DOM.startState.classList.add('hidden'); DOM.startState.classList.remove('flex');
-            filteredTasks = allTasks.filter(t => {
-                let passEstado = true;
-                if (vEst === 'revisadas') passEstado = t.auditStatus !== null;
-                if (vEst === 'pendientes') passEstado = t.auditStatus === null;
-                return passEstado && (!vReg || t.Region === vReg) && (!vDis || t.Distribuidor_Directa === vDis) &&
-                       (!vSup || t.Supervisor === vSup) && (!vPro || t.Promotor === vPro) && (!vDia || t.Dia === vDia);
-            });
+            DOM.startState.classList.add('hidden'); 
+            DOM.startState.classList.remove('flex');
+
+            // Funciones individuales para comprobar cada filtro
+            const passEst = (t) => vEst === '' || (vEst === 'revisadas' ? t.auditStatus !== null : t.auditStatus === null);
+            const passReg = (t) => vReg === '' || t.Region === vReg;
+            const passDis = (t) => vDis === '' || t.Distribuidor_Directa === vDis;
+            const passSup = (t) => vSup === '' || t.Supervisor === vSup;
+            const passPro = (t) => vPro === '' || t.Promotor === vPro;
+            const passDia = (t) => vDia === '' || t.Dia === vDia;
+
+            // Filtramos las tareas según TODAS las condiciones juntas
+            filteredTasks = allTasks.filter(t => passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t));
+
+            // Actualizamos la lista de opciones de cada menú (Cascada inteligente)
+            updateSelectOptions('f-region', allTasks.filter(t => passEst(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t)), 'Region', vReg, 'Todas las Regiones');
+            updateSelectOptions('f-distri', allTasks.filter(t => passEst(t) && passReg(t) && passSup(t) && passPro(t) && passDia(t)), 'Distribuidor_Directa', vDis, 'Todos los Distribuidores');
+            updateSelectOptions('f-supervisor', allTasks.filter(t => passEst(t) && passReg(t) && passDis(t) && passPro(t) && passDia(t)), 'Supervisor', vSup, 'Todos los Supervisores');
+            updateSelectOptions('f-promotor', allTasks.filter(t => passEst(t) && passReg(t) && passDis(t) && passSup(t) && passDia(t)), 'Promotor', vPro, 'Todos los Promotores');
+            updateSelectOptions('f-dia', allTasks.filter(t => passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t)), 'Dia', vDia, 'Todos los Días');
+
             updateDashboard(true); 
             
             uniquePDVs = [...new Set(filteredTasks.map(t => t.Cod_Cliente))];
             if (uniquePDVs.length === 0) {
-                DOM.workspace.classList.add('hidden'); DOM.noResults.classList.add('hidden'); DOM.noResults.classList.add('flex'); return;
+                DOM.workspace.classList.add('hidden'); 
+                DOM.noResults.classList.remove('hidden'); 
+                DOM.noResults.classList.add('flex'); 
+                return;
             }
-            DOM.noResults.classList.add('hidden'); DOM.noResults.classList.remove('flex');
-            DOM.workspace.classList.remove('hidden'); DOM.workspace.classList.add('flex');
-            currentPdvIndex = 0; renderCurrentPDV();
+            DOM.noResults.classList.add('hidden'); 
+            DOM.noResults.classList.remove('flex');
+            DOM.workspace.classList.remove('hidden'); 
+            DOM.workspace.classList.add('flex');
+            currentPdvIndex = 0; 
+            renderCurrentPDV();
         }
 
         function renderCurrentPDV() {
