@@ -90,7 +90,7 @@
                 <div class="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
             </div>
             <h2 class="text-xl font-bold text-slate-800">Conectando con Google Drive...</h2>
-            <p class="text-slate-500 mt-2 text-sm font-medium" id="loadingText">Leyendo la última bajada y detectando mes...</p>
+            <p class="text-slate-500 mt-2 text-sm font-medium" id="loadingText">Leyendo la última bajada y cruzando historial...</p>
         </div>
 
         <div id="startState" class="hidden flex-col items-center justify-center py-20 text-center">
@@ -127,7 +127,6 @@
         let rawDataMap = new Map(); 
         let allTasks = []; let filteredTasks = []; 
         let uniquePDVs = []; let currentPdvIndex = 0; let currentPdvTasks = [];
-        let targetMonthFolder = ""; // Variable global para guardar el mes detectado
         
         const DOM = {
             loading: document.getElementById('loadingIndicator'), loadingText: document.getElementById('loadingText'),
@@ -165,22 +164,6 @@
                         header: true, skipEmptyLines: true, worker: true,
                         complete: (csvRes) => {
                             const newRows = csvRes.data;
-
-                            // --- NUEVA INTELIGENCIA: Leer el mes SOLO del archivo CSV nuevo ---
-                            for (let i = 0; i < newRows.length; i++) {
-                                if (newRows[i].Dia && newRows[i].Dia.includes('/')) {
-                                    const dateParts = newRows[i].Dia.split('/');
-                                    if (dateParts.length >= 3) {
-                                        const mesIndex = parseInt(dateParts[1], 10) - 1; 
-                                        const anio = dateParts[2].trim().substring(0, 4);
-                                        const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-                                        if (mesIndex >= 0 && mesIndex <= 11) {
-                                            targetMonthFolder = meses[mesIndex] + " " + anio;
-                                            break; // Ya encontramos el mes en el archivo nuevo, dejamos de buscar
-                                        }
-                                    }
-                                }
-                            }
 
                             newRows.forEach(newRow => {
                                 const tId = newRow.Task_ID ? newRow.Task_ID.toString() : null;
@@ -262,6 +245,21 @@
             DOM.startState.classList.add('flex');
         }
 
+        // Función auxiliar para determinar a qué mes pertenece una fila
+        function getMonthFolder(diaStr) {
+            if (!diaStr || !diaStr.includes('/')) return "Tareas sin Fecha";
+            const dateParts = diaStr.split('/');
+            if (dateParts.length >= 3) {
+                const mesIndex = parseInt(dateParts[1], 10) - 1; 
+                const anio = dateParts[2].trim().substring(0, 4);
+                const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                if (mesIndex >= 0 && mesIndex <= 11) {
+                    return meses[mesIndex] + " " + anio;
+                }
+            }
+            return "Tareas sin Fecha";
+        }
+
         async function guardarEnDrive(isAutoSave = false) {
             if(rawDataMap.size === 0) return;
             
@@ -274,6 +272,7 @@
             const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !internalKeys.includes(k));
             if(!originalHeaders.includes('Acreditacion')) originalHeaders.push('Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
 
+            // 1. Preparar las filas completas
             const exportData = rawDataArray.map(row => {
                 let newRow = {}; 
                 originalHeaders.forEach(header => newRow[header] = row[header] || '');
@@ -292,13 +291,31 @@
                 return newRow;
             });
 
-            const csvString = Papa.unparse(exportData);
+            // 2. Agrupar las filas por mes exacto
+            const groupedByMonth = {};
+            exportData.forEach(row => {
+                const folder = getMonthFolder(row.Dia);
+                if (!groupedByMonth[folder]) {
+                    groupedByMonth[folder] = [];
+                }
+                groupedByMonth[folder].push(row);
+            });
+
+            // 3. Empaquetar todo para el servidor
+            const payload = {
+                fullCsv: Papa.unparse(exportData), // El archivo gigante que se guarda en Master
+                monthlyData: {} // Las sub-cajas divididas por mes exacto
+            };
+
+            for (const folder in groupedByMonth) {
+                payload.monthlyData[folder] = Papa.unparse(groupedByMonth[folder]);
+            }
 
             try {
                 await fetch(GAS_API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ csvContent: csvString, targetFolder: targetMonthFolder }) 
+                    body: JSON.stringify(payload) 
                 });
                 
                 if(!isAutoSave) {
