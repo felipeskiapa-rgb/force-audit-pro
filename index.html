@@ -46,7 +46,7 @@
                 </div>
             </div>
 
-            <!-- Filtros (Ahora con anchos más grandes para evitar textos cortados) -->
+            <!-- Filtros en Cascada Inteligente -->
             <div id="filtersSection" class="hidden pb-3 flex flex-wrap gap-3 items-center text-sm">
                 <select id="f-estado" class="bg-indigo-50 border-indigo-200 text-indigo-800 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-300 shadow-sm transition-all w-40 font-bold"><option value="">Estado (Todos)</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
                 <div class="h-6 w-px bg-slate-300 mx-1"></div>
@@ -113,7 +113,10 @@
                     <p class="text-sm font-bold text-indigo-600 tracking-widest uppercase mb-1" id="navCounter">PDV 1 de 100</p>
                     <h2 class="text-2xl font-extrabold text-slate-800" id="navPdvName">Cod: 123456</h2>
                     <p class="text-sm font-medium text-slate-500 mt-1" id="navPromotor">-</p>
-                    <p class="text-xs font-semibold text-slate-400 mt-0.5"><span id="navRegion">-</span> • <span id="navDistri">-</span></p>
+                    <!-- Agregamos navDia aquí para que se vea junto a la región y el distribuidor -->
+                    <p class="text-xs font-semibold text-slate-400 mt-0.5">
+                        <span id="navDia">-</span> • <span id="navRegion">-</span> • <span id="navDistri">-</span>
+                    </p>
                 </div>
                 <button onclick="nextPDV()" id="btnNextPdv" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-colors">Siguiente PDV &gt;</button>
             </div>
@@ -140,6 +143,7 @@
             kpiOk: document.getElementById('kpiOk'), kpiNok: document.getElementById('kpiNok'), 
             kpiPorcentaje: document.getElementById('kpiPorcentaje'), navCounter: document.getElementById('navCounter'), 
             navPdvName: document.getElementById('navPdvName'), navPromotor: document.getElementById('navPromotor'), 
+            navDia: document.getElementById('navDia'), // Añadido navDia
             navRegion: document.getElementById('navRegion'), navDistri: document.getElementById('navDistri'), 
             taskCount: document.getElementById('taskCount'), btnPrev: document.getElementById('btnPrevPdv'), 
             btnNext: document.getElementById('btnNextPdv')
@@ -331,7 +335,6 @@
             if (rawDataMap.size > 0) DOM.btnSaveDrive.classList.remove('hidden'); else DOM.btnSaveDrive.classList.add('hidden');
         }
 
-        // --- SISTEMA DE FILTROS EN CASCADA INTELIGENTE ---
         function updateSelectOptions(id, tasksForThisSelect, key, currentValue, defaultText) {
             const sel = document.getElementById(id);
             const uniqueVals = [...new Set(tasksForThisSelect.map(t => t[key]).filter(Boolean))].sort();
@@ -363,7 +366,7 @@
         window.resetFilters = () => {
             filterIds.forEach(id => document.getElementById(id).value = ''); 
             filteredTasks = [...allTasks]; 
-            initFilters(); // Resetea las opciones a su estado natural
+            initFilters(); 
             DOM.workspace.classList.add('hidden'); 
             DOM.noResults.classList.add('hidden');
             DOM.startState.classList.remove('hidden'); 
@@ -385,7 +388,6 @@
             DOM.startState.classList.add('hidden'); 
             DOM.startState.classList.remove('flex');
 
-            // Funciones individuales para comprobar cada filtro
             const passEst = (t) => vEst === '' || (vEst === 'revisadas' ? t.auditStatus !== null : t.auditStatus === null);
             const passReg = (t) => vReg === '' || t.Region === vReg;
             const passDis = (t) => vDis === '' || t.Distribuidor_Directa === vDis;
@@ -393,10 +395,8 @@
             const passPro = (t) => vPro === '' || t.Promotor === vPro;
             const passDia = (t) => vDia === '' || t.Dia === vDia;
 
-            // Filtramos las tareas según TODAS las condiciones juntas
             filteredTasks = allTasks.filter(t => passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t));
 
-            // Actualizamos la lista de opciones de cada menú (Cascada inteligente)
             updateSelectOptions('f-region', allTasks.filter(t => passEst(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t)), 'Region', vReg, 'Todas las Regiones');
             updateSelectOptions('f-distri', allTasks.filter(t => passEst(t) && passReg(t) && passSup(t) && passPro(t) && passDia(t)), 'Distribuidor_Directa', vDis, 'Todos los Distribuidores');
             updateSelectOptions('f-supervisor', allTasks.filter(t => passEst(t) && passReg(t) && passDis(t) && passPro(t) && passDia(t)), 'Supervisor', vSup, 'Todos los Supervisores');
@@ -427,6 +427,8 @@
             DOM.navCounter.textContent = `PDV ${currentPdvIndex + 1} DE ${uniquePDVs.length}`; 
             DOM.navPdvName.textContent = `PDV: ${currentPdvId}`;
             DOM.navPromotor.textContent = `Promotor/es: ${[...new Set(currentPdvTasks.map(t => t.Promotor))].join(', ')}`;
+            // Actualización para mostrar el Día en la cabecera
+            DOM.navDia.textContent = `Día/s: ${[...new Set(currentPdvTasks.map(t => t.Dia))].join(', ')}`;
             DOM.navRegion.textContent = `Región: ${[...new Set(currentPdvTasks.map(t => t.Region))].join(', ')}`;
             DOM.navDistri.textContent = `Distribuidor: ${[...new Set(currentPdvTasks.map(t => t.Distribuidor_Directa))].join(', ')}`;
             DOM.taskCount.textContent = currentPdvTasks.length;
