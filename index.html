@@ -127,6 +127,7 @@
         let rawDataMap = new Map(); 
         let allTasks = []; let filteredTasks = []; 
         let uniquePDVs = []; let currentPdvIndex = 0; let currentPdvTasks = [];
+        let targetMonthFolder = ""; // Variable global para guardar el mes detectado
         
         const DOM = {
             loading: document.getElementById('loadingIndicator'), loadingText: document.getElementById('loadingText'),
@@ -165,6 +166,22 @@
                         complete: (csvRes) => {
                             const newRows = csvRes.data;
 
+                            // --- NUEVA INTELIGENCIA: Leer el mes SOLO del archivo CSV nuevo ---
+                            for (let i = 0; i < newRows.length; i++) {
+                                if (newRows[i].Dia && newRows[i].Dia.includes('/')) {
+                                    const dateParts = newRows[i].Dia.split('/');
+                                    if (dateParts.length >= 3) {
+                                        const mesIndex = parseInt(dateParts[1], 10) - 1; 
+                                        const anio = dateParts[2].trim().substring(0, 4);
+                                        const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                                        if (mesIndex >= 0 && mesIndex <= 11) {
+                                            targetMonthFolder = meses[mesIndex] + " " + anio;
+                                            break; // Ya encontramos el mes en el archivo nuevo, dejamos de buscar
+                                        }
+                                    }
+                                }
+                            }
+
                             newRows.forEach(newRow => {
                                 const tId = newRow.Task_ID ? newRow.Task_ID.toString() : null;
                                 if (!tId) return;
@@ -195,7 +212,6 @@
                             });
 
                             finalizeDataLoad();
-                            
                             setTimeout(() => { guardarEnDrive(true); }, 1500); 
                         }
                     });
@@ -258,21 +274,6 @@
             const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !internalKeys.includes(k));
             if(!originalHeaders.includes('Acreditacion')) originalHeaders.push('Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
 
-            // --- INTELIGENCIA PARA DETECTAR EL MES DEL ARCHIVO ---
-            let detectedFolderName = "";
-            if (rawDataArray.length > 0 && rawDataArray[0].Dia) {
-                // Toma la fecha, ej: 21/09/2026
-                const dateParts = rawDataArray[0].Dia.split('/');
-                if (dateParts.length === 3) {
-                    const mesIndex = parseInt(dateParts[1], 10) - 1; // 09 -> 8
-                    const anio = dateParts[2]; // 2026
-                    const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-                    if (mesIndex >= 0 && mesIndex <= 11) {
-                        detectedFolderName = meses[mesIndex] + " " + anio; // Ej: "Septiembre 2026" u "Octubre 2026"
-                    }
-                }
-            }
-
             const exportData = rawDataArray.map(row => {
                 let newRow = {}; 
                 originalHeaders.forEach(header => newRow[header] = row[header] || '');
@@ -297,8 +298,7 @@
                 await fetch(GAS_API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    // Acá le pasamos el nombre calculado al servidor
-                    body: JSON.stringify({ csvContent: csvString, targetFolder: detectedFolderName }) 
+                    body: JSON.stringify({ csvContent: csvString, targetFolder: targetMonthFolder }) 
                 });
                 
                 if(!isAutoSave) {
