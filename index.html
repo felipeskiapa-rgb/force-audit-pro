@@ -94,7 +94,7 @@
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzW8t3XOl-3Vq8jpTn00lMxbgz8SGlV-1tErMRNOgpm9M6rs_-Hh-qGVOtsBDuw35oB/exec";
 
         let rawDataMap = new Map(); 
-        let pendingChanges = new Map(); // NUEVO: Memoria de los parches (cambios que hizo solo esta persona)
+        let pendingChanges = new Map();
         let allTasks = []; let filteredTasks = []; 
         let uniquePDVs = []; let currentPdvIndex = 0; let currentPdvTasks = [];
         
@@ -193,22 +193,32 @@
 
         function finalizeDataLoad() {
             const finalRawData = Array.from(rawDataMap.values());
-            allTasks = finalRawData.filter(row => row.Validada == 1 || row.Validada === '1' || String(row.Validada).trim().toLowerCase() === 'true');
+            
+            // REGLA: Si la tarea es Válida (1) O si fue revisada por un humano, SE MUESTRA.
+            allTasks = finalRawData.filter(row => {
+                const isValid = (row.Validada == 1 || row.Validada === '1' || String(row.Validada).trim().toLowerCase() === 'true');
+                const hasHumanAudit = (row.auditStatus !== null);
+                return isValid || hasHumanAudit;
+            });
+            
             filteredTasks = [...allTasks];
             
             DOM.loading.classList.add('hidden');
             initFilters(); updateDashboard(false); 
             DOM.dashboardStats.classList.remove('hidden'); DOM.startState.classList.remove('hidden'); DOM.startState.classList.add('flex');
-            DOM.btnSaveDrive.classList.remove('hidden'); // El botón de guardar siempre visible ahora
+            DOM.btnSaveDrive.classList.remove('hidden'); 
         }
 
-        // --- SISTEMA DE GUARDADO MULTIUSUARIO ---
         async function guardarEnDrive(isAutoSave = false, isFullSync = false) {
             if(rawDataMap.size === 0) return;
             
-            // Si es un guardado manual del usuario, verificamos si hizo cambios
             if (!isFullSync && pendingChanges.size === 0) {
-                alert("No hiciste cambios recientes para guardar.");
+                if (!isAutoSave) {
+                    DOM.btnSaveDrive.innerHTML = '<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> ¡Base al día!';
+                    setTimeout(() => {
+                        DOM.btnSaveDrive.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Guardar mis cambios';
+                    }, 3000);
+                }
                 return;
             }
             
@@ -218,7 +228,6 @@
 
             let payload;
             if (isFullSync) {
-                // Sincronización inicial entera
                 const rawDataArray = Array.from(rawDataMap.values());
                 const internalKeys = ['_id', 'auditStatus', 'auditReason', 'auditDate'];
                 const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !internalKeys.includes(k));
@@ -226,15 +235,31 @@
 
                 const exportData = rawDataArray.map(row => {
                     let newRow = {}; originalHeaders.forEach(header => newRow[header] = row[header] || '');
-                    const isValid = (row.Validada == 1 || row.Validada === '1' || String(row.Validada).trim().toLowerCase() === 'true');
-                    if (!isValid) { newRow['Acreditacion'] = 'no acreditar'; } 
-                    else { newRow['Acreditacion'] = (row.auditStatus === 'NOK') ? 'no acreditar' : 'acreditar'; }
-                    newRow['Motivo_Fraude'] = row.auditReason || ''; newRow['Fecha_Revision'] = row.auditDate || '';
+                    
+                    let acreditacionValue = '';
+                    
+                    // REGLA DE ORO: La decisión humana siempre manda
+                    if (row.auditStatus === 'OK') {
+                        acreditacionValue = 'acreditar';
+                    } else if (row.auditStatus === 'NOK') {
+                        acreditacionValue = 'no acreditar';
+                    } else {
+                        // Si el humano no la tocó, el sistema automático decide en base a la columna "Validada"
+                        const isValid = (row.Validada == 1 || row.Validada === '1' || String(row.Validada).trim().toLowerCase() === 'true');
+                        if (!isValid) { 
+                            acreditacionValue = 'no acreditar'; 
+                        } else { 
+                            acreditacionValue = 'acreditar'; 
+                        }
+                    }
+
+                    newRow['Acreditacion'] = acreditacionValue; 
+                    newRow['Motivo_Fraude'] = row.auditReason || ''; 
+                    newRow['Fecha_Revision'] = row.auditDate || '';
                     return newRow;
                 });
                 payload = { delta: false, csvContent: Papa.unparse(exportData) };
             } else {
-                // Parche Multiusuario: Enviar solo lo que tocó el compañero
                 const changesArray = Array.from(pendingChanges.values());
                 payload = { delta: true, changes: changesArray };
             }
@@ -252,7 +277,6 @@
                     return;
                 }
                 
-                // Éxito: Limpiamos la memoria de parches
                 if(!isFullSync) {
                     pendingChanges.clear(); 
                     if(!isAutoSave) {
@@ -266,7 +290,6 @@
             }
         }
 
-        // --- MANEJO LOCAL DE TAREAS Y CREACIÓN DEL PARCHE ---
         function registerChange(task) {
             pendingChanges.set(task._id, {
                 Task_ID: task.Task_ID,
@@ -300,7 +323,6 @@
             }
         };
 
-        // --- FILTROS Y UI (Sin cambios) ---
         function updateDashboard(isFiltered = false) {
             DOM.lblBase.textContent = isFiltered ? "Válidas (Filtro)" : "Válidas (Total)";
             const total = filteredTasks.length;
