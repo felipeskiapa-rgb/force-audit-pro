@@ -160,61 +160,88 @@
 
                 DOM.loadingText.textContent = `Procesando: ${response.csvFilename}...`;
 
-                // 1. CARGAR SOLO EL HISTORIAL DE AUDITORÍA HUMANA DESDE EL MASTER
-                const masterAuditMap = new Map();
+                // FUNCIÓN PRINCIPAL PARA PROCESAR EL NUEVO CSV (UPSERT)
+                const procesarCsvNuevo = () => {
+                    Papa.parse(response.csvContent, {
+                        header: true, skipEmptyLines: true, worker: true,
+                        complete: (csvRes) => {
+                            const newRows = csvRes.data;
+
+                            newRows.forEach(newRow => {
+                                const tId = newRow.Task_ID ? newRow.Task_ID.toString() : null;
+                                if (!tId) return;
+
+                                newRow._id = tId;
+                                newRow.Task_ID = tId;
+
+                                // Si la tarea ya existía en el Master viejo
+                                if (rawDataMap.has(tId)) {
+                                    const oldRow = rawDataMap.get(tId);
+                                    
+                                    // Si ya había sido auditada por un humano, respetamos su decisión
+                                    if (oldRow.auditDate && oldRow.auditDate.trim() !== '') {
+                                        newRow.auditStatus = oldRow.auditStatus;
+                                        newRow.auditReason = oldRow.auditReason;
+                                        newRow.auditDate = oldRow.auditDate;
+                                        
+                                        // También preservamos las columnas para exportar
+                                        newRow.Acreditacion = oldRow.Acreditacion;
+                                        newRow.Motivo_Fraude = oldRow.Motivo_Fraude;
+                                        newRow.Fecha_Revision = oldRow.Fecha_Revision;
+                                    } else {
+                                        // Si no estaba auditada, toma los datos frescos (ej: cambio de Validada 0 a 1)
+                                        newRow.auditStatus = null;
+                                        newRow.auditReason = '';
+                                        newRow.auditDate = '';
+                                    }
+                                } else {
+                                    // Si es una tarea totalmente nueva que no estaba en el Master
+                                    newRow.auditStatus = null;
+                                    newRow.auditReason = '';
+                                    newRow.auditDate = '';
+                                }
+
+                                // Agregamos o Sobreescribimos en el mapa. 
+                                // (Las tareas viejas que no vinieron en este CSV NO se borran, quedan en el mapa).
+                                rawDataMap.set(tId, newRow);
+                            });
+
+                            finalizeDataLoad();
+                            guardarEnDrive(true);
+                        }
+                    });
+                };
+
+                // 1. CARGAMOS TODO EL MASTER HISTÓRICO PRIMERO (Conservando TODO)
                 if (response.masterContent && response.masterContent.trim() !== '') {
                     Papa.parse(response.masterContent, {
                         header: true, skipEmptyLines: true,
                         complete: (masterRes) => {
                             masterRes.data.forEach(mRow => {
-                                if (mRow.Task_ID && mRow.Fecha_Revision && mRow.Fecha_Revision.trim() !== '') {
-                                    masterAuditMap.set(mRow.Task_ID.toString(), {
-                                        Acreditacion: mRow.Acreditacion,
-                                        Motivo_Fraude: mRow.Motivo_Fraude,
-                                        Fecha_Revision: mRow.Fecha_Revision
-                                    });
+                                if (mRow.Task_ID) {
+                                    let status = null;
+                                    if (mRow.Fecha_Revision && mRow.Fecha_Revision.trim() !== '') {
+                                        if (mRow.Acreditacion === 'acreditar') status = 'OK';
+                                        else if (mRow.Acreditacion === 'no acreditar' && mRow.Motivo_Fraude) status = 'NOK';
+                                    }
+                                    mRow.auditStatus = status;
+                                    mRow.auditReason = mRow.Motivo_Fraude || '';
+                                    mRow.auditDate = mRow.Fecha_Revision || '';
+                                    mRow._id = mRow.Task_ID.toString();
+                                    
+                                    // Llenamos el mapa inicial con el histórico acumulado
+                                    rawDataMap.set(mRow.Task_ID.toString(), mRow);
                                 }
                             });
+                            
+                            // Una vez cargado el Master entero, procesamos el CSV nuevo por encima
+                            procesarCsvNuevo();
                         }
                     });
+                } else {
+                    // Si no hay Master viejo (ej: mes nuevo), procesamos directo el CSV
+                    procesarCsvNuevo();
                 }
-
-                // 2. LA FUENTE DE VERDAD ES EL CSV NUEVO DE HOY
-                Papa.parse(response.csvContent, {
-                    header: true, skipEmptyLines: true, worker: true,
-                    complete: (csvRes) => {
-                        const newRows = csvRes.data;
-
-                        newRows.forEach(row => {
-                            const tId = row.Task_ID ? row.Task_ID.toString() : null;
-                            if (!tId) return;
-
-                            row._id = tId;
-                            row.Task_ID = tId;
-
-                            // Si esta tarea YA fue auditada por un humano anteriormente, restauramos su decisión
-                            if (masterAuditMap.has(tId)) {
-                                const oldAudit = masterAuditMap.get(tId);
-                                if (oldAudit.Acreditacion === 'acreditar') row.auditStatus = 'OK';
-                                else if (oldAudit.Acreditacion === 'no acreditar' && oldAudit.Motivo_Fraude) row.auditStatus = 'NOK';
-                                else row.auditStatus = null;
-
-                                row.auditReason = oldAudit.Motivo_Fraude || '';
-                                row.auditDate = oldAudit.Fecha_Revision || '';
-                            } else {
-                                // Si NO fue revisada, toma estrictamente el valor fresco del CSV de hoy (ej: Validada = 0)
-                                row.auditStatus = null;
-                                row.auditReason = '';
-                                row.auditDate = '';
-                            }
-
-                            rawDataMap.set(tId, row);
-                        });
-
-                        finalizeDataLoad();
-                        guardarEnDrive(true);
-                    }
-                });
 
             } catch(e) {
                 alert("Error crítico de conexión: " + e);
