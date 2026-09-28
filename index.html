@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Columnas Perfectas</title>
+    <title>ForceAudit Pro | Columnas Blindadas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -194,7 +194,6 @@
         function finalizeDataLoad() {
             const finalRawData = Array.from(rawDataMap.values());
             
-            // REGLA: Si la tarea es Válida (1) O si fue revisada por un humano, SE MUESTRA.
             allTasks = finalRawData.filter(row => {
                 const isValid = (row.Validada == 1 || row.Validada === '1' || String(row.Validada).trim().toLowerCase() === 'true');
                 const hasHumanAudit = (row.auditStatus !== null);
@@ -232,47 +231,57 @@
                 const internalKeys = ['_id', 'auditStatus', 'auditReason', 'auditDate', 'Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'];
                 const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !internalKeys.includes(k));
                 
-                // === NUEVO ORDEN ESTRICTO GEOMÉTRICO (BLOQUES BLINDADOS) ===
+                // === NUEVO ORDEN ESTRICTO GEOMÉTRICO (BLOQUES BLINDADOS FLEXIBLES) ===
                 
-                // 1. Columnas Iniciales
                 const frontCols = [
                     'Dia', 'Rol_Promotor', 'Promotor', 'Cod_Distribuidor', 'Distribuidor_Directa', 
-                    'Region', 'Area', 'Subregion', 'Canal', 'Tarea', 'Cod_Cliente', 'Tareas_Enviadas', 'Validada'
+                    'Region', 'Area', 'Subregion', 'Canal', 'Tarea', 'Cod_Cliente', 'Tareas_Enviadas'
                 ];
                 
-                // 2. Columnas Clavadas al Final (Justo antes de la auditoría)
-                const preEndCols = ['Sync', 'Visita_Validada', 'Negocio'];
+                // Agrupamos Validada, Sync, Visita_Valida y Negocio para que queden pegadas al final
+                const preEndCols = ['Validada', 'Sync', 'Visita_Valid', 'Negocio'];
                 
                 let finalHeaders = [];
                 
-                // Cargamos el Bloque 1
+                const findRealName = (prefix) => {
+                    const search = prefix.toLowerCase().substring(0, 10);
+                    return originalHeaders.find(h => h.toLowerCase().includes(search));
+                };
+
+                // 1. Bloque Inicial (Foto primera parte)
                 frontCols.forEach(col => {
-                    if (originalHeaders.includes(col) && !finalHeaders.includes(col)) { finalHeaders.push(col); }
+                    const match = findRealName(col);
+                    if (match && !finalHeaders.includes(match)) { finalHeaders.push(match); }
                 });
                 
-                // Cargamos el Bloque 2 (Cualquier columna oculta o extra se mete al medio)
+                // 2. Intermedias (Columnas ocultas como Task_ID, Link_Foto, etc.)
                 originalHeaders.forEach(col => {
-                    if (!finalHeaders.includes(col) && !preEndCols.includes(col)) { finalHeaders.push(col); }
+                    const isAudit = ['Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'].includes(col);
+                    const isPreEnd = preEndCols.some(p => col.toLowerCase().includes(p.toLowerCase().substring(0, 10)));
+                    
+                    if (!finalHeaders.includes(col) && !isAudit && !isPreEnd) {
+                        finalHeaders.push(col); // Las ocultas van antes del cierre para no molestar
+                    }
                 });
                 
-                // Cargamos el Bloque 3 (Sync, Visita_Validada, Negocio - Pegadas al fondo)
+                // 3. Bloque Pre-Final (Juntas obligatoriamente)
                 preEndCols.forEach(col => {
-                    if (originalHeaders.includes(col) && !finalHeaders.includes(col)) { finalHeaders.push(col); }
+                    const match = findRealName(col);
+                    if (match && !finalHeaders.includes(match)) { finalHeaders.push(match); }
                 });
                 
-                // Cargamos el Bloque 4 (Auditoría)
+                // 4. Bloque Auditoría (Cierre definitivo)
                 finalHeaders.push('Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
                 
-                // Armamos los datos forzando a que JavaScript los guarde en ese orden exacto
+                // Armamos los datos
                 const exportData = rawDataArray.map(row => {
                     let newRow = {}; 
                     
                     finalHeaders.forEach(header => {
-                        if (internalKeys.includes(header)) return; // Se manejan abajo
+                        if (internalKeys.includes(header)) return;
                         newRow[header] = row[header] !== undefined ? row[header] : '';
                     });
 
-                    // Regla de Oro (Prioridad Humana)
                     let acreditacionValue = '';
                     if (row.auditStatus === 'OK') { acreditacionValue = 'acreditar'; } 
                     else if (row.auditStatus === 'NOK') { acreditacionValue = 'no acreditar'; } 
@@ -302,7 +311,7 @@
                 const responseJson = await req.json();
                 
                 if(!responseJson.success) {
-                    if(!isAutoSave) { alert("⚠️ Error de guardado: Hubo un problema de conexión. Intentá de nuevo. (" + responseJson.error + ")"); DOM.btnSaveDrive.innerHTML = '⚠️ Reintentar guardar'; }
+                    if(!isAutoSave) { alert("⚠️ Error de guardado. Intentá de nuevo."); DOM.btnSaveDrive.innerHTML = '⚠️ Reintentar guardar'; }
                     return;
                 }
                 
