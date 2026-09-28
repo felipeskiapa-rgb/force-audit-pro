@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Columnas Definitivas</title>
+    <title>ForceAudit Pro | Filtro de Validez</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -46,9 +46,18 @@
                 </div>
             </div>
 
+            <!-- Filtros en Cascada con el nuevo Filtro de Validez Maestro -->
             <div id="filtersSection" class="hidden pb-3 flex flex-wrap gap-3 items-center text-sm">
-                <select id="f-estado" class="bg-indigo-50 border-indigo-200 text-indigo-800 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-300 shadow-sm transition-all w-40 font-bold"><option value="">Estado (Todos)</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
+                <!-- NUEVO FILTRO DE VALIDEZ -->
+                <select id="f-validez" class="bg-indigo-100 border-indigo-200 text-indigo-900 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-400 shadow-sm transition-all w-40 font-extrabold">
+                    <option value="validas" selected>Solo Válidas</option>
+                    <option value="invalidas">Solo Inválidas</option>
+                    <option value="todas">Ver Todas</option>
+                </select>
+                
                 <div class="h-6 w-px bg-slate-300 mx-1"></div>
+                
+                <select id="f-estado" class="bg-indigo-50 border-indigo-200 text-indigo-800 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-300 shadow-sm transition-all w-40 font-bold"><option value="">Estado (Todos)</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
                 <select id="f-region" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-56 truncate font-medium"><option value="">Todas las Regiones</option></select>
                 <select id="f-distri" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-72 truncate font-medium"><option value="">Todos los Distribuidores</option></select>
                 <select id="f-supervisor" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-64 truncate font-medium"><option value="">Todos los Supervisores</option></select>
@@ -61,7 +70,7 @@
 
     <main class="flex-grow flex flex-col max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 relative">
         <div id="dashboardStats" class="hidden grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 w-full">
-            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col justify-center"><p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1"><span id="lblBase">Válidas (Filtro)</span></p><p class="text-2xl font-extrabold text-slate-800" id="kpiTotal">0</p></div>
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col justify-center"><p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1"><span id="lblBase">Válidas (Total)</span></p><p class="text-2xl font-extrabold text-slate-800" id="kpiTotal">0</p></div>
             <div class="bg-indigo-50 rounded-2xl p-4 border border-indigo-100 shadow-sm flex flex-col justify-center"><p class="text-[10px] text-indigo-500 font-bold uppercase tracking-widest mb-1">Auditadas</p><p class="text-2xl font-extrabold text-indigo-700" id="kpiAuditadas">0</p></div>
             <div class="bg-emerald-50 rounded-2xl p-4 border border-emerald-100 shadow-sm flex flex-col justify-center"><p class="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mb-1">Aprobadas (OK)</p><p class="text-2xl font-extrabold text-emerald-600" id="kpiOk">0</p></div>
             <div class="bg-rose-50 rounded-2xl p-4 border border-rose-100 shadow-sm flex flex-col justify-center"><p class="text-[10px] text-rose-600 font-bold uppercase tracking-widest mb-1">Fraudes (NOK)</p><p class="text-2xl font-extrabold text-rose-600" id="kpiNok">0</p></div>
@@ -97,6 +106,9 @@
         let allTasks = []; let filteredTasks = []; 
         let uniquePDVs = []; let currentPdvIndex = 0; let currentPdvTasks = [];
         
+        // Sumamos el nuevo filtro a la lista de control
+        const filterIds = ['f-validez', 'f-estado', 'f-region', 'f-distri', 'f-supervisor', 'f-promotor', 'f-dia'];
+
         const DOM = {
             loading: document.getElementById('loadingIndicator'), loadingText: document.getElementById('loadingText'),
             syncStatus: document.getElementById('syncStatus'), filtersSec: document.getElementById('filtersSection'), 
@@ -112,7 +124,6 @@
             navDistri: document.getElementById('navDistri'), taskCount: document.getElementById('taskCount'), 
             btnPrev: document.getElementById('btnPrevPdv'), btnNext: document.getElementById('btnNextPdv')
         };
-        const filterIds = ['f-estado', 'f-region', 'f-distri', 'f-supervisor', 'f-promotor', 'f-dia'];
 
         function formatCodCliente(val) {
             if (!val) return '';
@@ -190,18 +201,15 @@
         }
 
         function finalizeDataLoad() {
-            const finalRawData = Array.from(rawDataMap.values());
+            // Ahora cargamos ABSOLUTAMENTE TODAS las tareas a la memoria para poder filtrarlas
+            allTasks = Array.from(rawDataMap.values());
             
-            allTasks = finalRawData.filter(row => {
-                const isValid = (row.Validada == 1 || row.Validada === '1' || String(row.Validada).trim().toLowerCase() === 'true');
-                const hasHumanAudit = (row.auditStatus !== null);
-                return isValid || hasHumanAudit;
-            });
-            
-            filteredTasks = [...allTasks];
+            // El estado por defecto inicial son solo las válidas
+            filteredTasks = allTasks.filter(t => t.Validada == 1 || t.Validada === '1' || String(t.Validada).trim().toLowerCase() === 'true');
             
             DOM.loading.classList.add('hidden');
-            initFilters(); updateDashboard(false); 
+            initFilters(); 
+            updateDashboard(false); 
             DOM.dashboardStats.classList.remove('hidden'); DOM.startState.classList.remove('hidden'); DOM.startState.classList.add('flex');
             DOM.btnSaveDrive.classList.remove('hidden'); 
         }
@@ -226,7 +234,6 @@
                 const rawDataArray = Array.from(rawDataMap.values());
                 const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !['_id', 'auditStatus', 'auditReason', 'auditDate'].includes(k));
                 
-                // === ORDEN ESTRICTO EXACTAMENTE COMO PEDISTE COLUMNA POR COLUMNA ===
                 const exactOrder = [
                     'Dia', 'Rol_Promotor', 'Promotor', 'Cod_Distribuidor', 'Distribuidor_Directa', 
                     'Region', 'Area', 'Subregion', 'Canal', 'Tarea', 'Cod_Cliente', 'Tareas_Enviadas', 
@@ -236,29 +243,20 @@
                 
                 let finalHeaders = [];
                 
-                // 1. Cargamos todo el orden estricto forzado (busca ignorando mayúsculas y partes de texto)
                 exactOrder.forEach(col => {
                     const match = originalHeaders.find(h => h.trim().toLowerCase() === col.toLowerCase());
-                    if (match && !finalHeaders.includes(match)) { 
-                        finalHeaders.push(match); 
-                    } else {
-                        // Si no lo encuentra exacto (ej: "Visita_Valid"), lo busca parcialmente
+                    if (match && !finalHeaders.includes(match)) { finalHeaders.push(match); } 
+                    else {
                         const fuzzyMatch = originalHeaders.find(h => h.toLowerCase().includes(col.toLowerCase().substring(0, 10)));
-                        if (fuzzyMatch && !finalHeaders.includes(fuzzyMatch)) {
-                            finalHeaders.push(fuzzyMatch);
-                        }
+                        if (fuzzyMatch && !finalHeaders.includes(fuzzyMatch)) { finalHeaders.push(fuzzyMatch); }
                     }
                 });
                 
-                // 2. Por seguridad, si de origen venía alguna otra columna que no listamos arriba, la ponemos acá antes del final.
                 originalHeaders.forEach(col => {
                     const isAudit = ['Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'].map(a=>a.toLowerCase()).includes(col.toLowerCase());
-                    if (!finalHeaders.includes(col) && !isAudit) {
-                        finalHeaders.push(col);
-                    }
+                    if (!finalHeaders.includes(col) && !isAudit) { finalHeaders.push(col); }
                 });
                 
-                // 3. Cierre final con las 3 columnas de Auditoría
                 finalHeaders.push('Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
 
                 const exportData = rawDataArray.map(row => {
@@ -276,10 +274,7 @@
                         if (!isValid) { acreditacionValue = 'no acreditar'; } else { acreditacionValue = 'acreditar'; }
                     }
 
-                    newRow['Acreditacion'] = acreditacionValue; 
-                    newRow['Motivo_Fraude'] = row.auditReason || ''; 
-                    newRow['Fecha_Revision'] = row.auditDate || '';
-                    
+                    newRow['Acreditacion'] = acreditacionValue; newRow['Motivo_Fraude'] = row.auditReason || ''; newRow['Fecha_Revision'] = row.auditDate || '';
                     return newRow;
                 });
                 payload = { delta: false, csvContent: Papa.unparse(exportData) };
@@ -289,11 +284,7 @@
             }
 
             try {
-                const req = await fetch(GAS_API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(payload)
-                });
+                const req = await fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
                 const responseJson = await req.json();
                 
                 if(!responseJson.success) {
@@ -315,40 +306,21 @@
         }
 
         function registerChange(task) {
-            pendingChanges.set(task._id, {
-                Task_ID: task.Task_ID,
-                Acreditacion: task.auditStatus === 'NOK' ? 'no acreditar' : 'acreditar',
-                Motivo_Fraude: task.auditReason,
-                Fecha_Revision: task.auditDate
-            });
+            pendingChanges.set(task._id, { Task_ID: task.Task_ID, Acreditacion: task.auditStatus === 'NOK' ? 'no acreditar' : 'acreditar', Motivo_Fraude: task.auditReason, Fecha_Revision: task.auditDate });
         }
 
-        window.marcarOK = (id) => {
-            const task = allTasks.find(t => t._id === id);
-            if (task) { 
-                task.auditStatus = 'OK'; task.auditReason = ''; task.auditDate = getTimestamp(); 
-                registerChange(task); renderCardStyleOnly(task); updateDashboard(true); checkAutoAdvance(); 
-            }
-        };
-
-        window.toggleNokPanel = (id) => {
-            const actionsPanel = document.getElementById(`actions-${id}`); const nokPanel = document.getElementById(`nok-panel-${id}`);
-            if (nokPanel.classList.contains('hidden')) { nokPanel.classList.remove('hidden'); nokPanel.classList.add('flex'); actionsPanel.classList.add('hidden'); } 
-            else { nokPanel.classList.add('hidden'); nokPanel.classList.remove('flex'); actionsPanel.classList.add('hidden'); }
-        };
-
-        window.confirmarNOK = (id) => {
-            const reason = document.getElementById(`reason-${id}`)[document.getElementById(`reason-${id}`).selectedIndex].value; 
-            if (!reason) { alert("Por favor, elegí un motivo."); return; }
-            const task = allTasks.find(t => t._id === id);
-            if (task) { 
-                task.auditStatus = 'NOK'; task.auditReason = reason; task.auditDate = getTimestamp(); 
-                registerChange(task); renderCardStyleOnly(task); toggleNokPanel(id); updateDashboard(true); checkAutoAdvance(); 
-            }
-        };
+        window.marcarOK = (id) => { const task = allTasks.find(t => t._id === id); if (task) { task.auditStatus = 'OK'; task.auditReason = ''; task.auditDate = getTimestamp(); registerChange(task); renderCardStyleOnly(task); updateDashboard(true); checkAutoAdvance(); } };
+        window.toggleNokPanel = (id) => { const actionsPanel = document.getElementById(`actions-${id}`); const nokPanel = document.getElementById(`nok-panel-${id}`); if (nokPanel.classList.contains('hidden')) { nokPanel.classList.remove('hidden'); nokPanel.classList.add('flex'); actionsPanel.classList.add('hidden'); } else { nokPanel.classList.add('hidden'); nokPanel.classList.remove('flex'); actionsPanel.classList.add('hidden'); } };
+        window.confirmarNOK = (id) => { const reason = document.getElementById(`reason-${id}`)[document.getElementById(`reason-${id}`).selectedIndex].value; if (!reason) { alert("Por favor, elegí un motivo."); return; } const task = allTasks.find(t => t._id === id); if (task) { task.auditStatus = 'NOK'; task.auditReason = reason; task.auditDate = getTimestamp(); registerChange(task); renderCardStyleOnly(task); toggleNokPanel(id); updateDashboard(true); checkAutoAdvance(); } };
 
         function updateDashboard(isFiltered = false) {
-            DOM.lblBase.textContent = isFiltered ? "Válidas (Filtro)" : "Válidas (Total)";
+            // Actualiza el cartel del Dashboard dependiendo de qué validez estemos filtrando
+            const vVal = document.getElementById('f-validez') ? document.getElementById('f-validez').value : 'validas';
+            let baseLabel = "Tareas";
+            if (vVal === 'validas') baseLabel = "Válidas"; else if (vVal === 'invalidas') baseLabel = "Inválidas"; else if (vVal === 'todas') baseLabel = "Totales";
+            
+            DOM.lblBase.textContent = isFiltered ? `${baseLabel} (Filtro)` : `${baseLabel} (Total)`;
+            
             const total = filteredTasks.length;
             const ok = filteredTasks.filter(t => t.auditStatus === 'OK').length;
             const nok = filteredTasks.filter(t => t.auditStatus === 'NOK').length;
@@ -368,44 +340,68 @@
 
         function initFilters() {
             DOM.filtersSec.classList.remove('hidden');
-            updateSelectOptions('f-region', allTasks, 'Region', '', 'Todas las Regiones');
-            updateSelectOptions('f-distri', allTasks, 'Distribuidor_Directa', '', 'Todos los Distribuidores');
-            updateSelectOptions('f-supervisor', allTasks, 'Supervisor', '', 'Todos los Supervisores');
-            updateSelectOptions('f-promotor', allTasks, 'Promotor', '', 'Todos los Promotores');
-            updateSelectOptions('f-dia', allTasks, 'Dia', '', 'Todos los Días');
+            // Al arrancar, armamos los filtros de región etc basados en lo que diga f-validez (por defecto Válidas)
+            const baseTasks = allTasks.filter(t => t.Validada == 1 || t.Validada === '1' || String(t.Validada).trim().toLowerCase() === 'true');
+            updateSelectOptions('f-region', baseTasks, 'Region', '', 'Todas las Regiones');
+            updateSelectOptions('f-distri', baseTasks, 'Distribuidor_Directa', '', 'Todos los Distribuidores');
+            updateSelectOptions('f-supervisor', baseTasks, 'Supervisor', '', 'Todos los Supervisores');
+            updateSelectOptions('f-promotor', baseTasks, 'Promotor', '', 'Todos los Promotores');
+            updateSelectOptions('f-dia', baseTasks, 'Dia', '', 'Todos los Días');
             filterIds.forEach(id => { document.getElementById(id).onchange = applyFilters; });
         }
 
         window.resetFilters = () => {
-            filterIds.forEach(id => document.getElementById(id).value = ''); filteredTasks = [...allTasks]; initFilters(); 
-            DOM.workspace.classList.add('hidden'); DOM.noResults.classList.add('hidden');
-            DOM.startState.classList.remove('hidden'); DOM.startState.classList.add('flex'); updateDashboard(false);
+            document.getElementById('f-validez').value = 'validas'; // Siempre resetea a Válidas
+            document.getElementById('f-estado').value = '';
+            document.getElementById('f-region').value = '';
+            document.getElementById('f-distri').value = '';
+            document.getElementById('f-supervisor').value = '';
+            document.getElementById('f-promotor').value = '';
+            document.getElementById('f-dia').value = '';
+            applyFilters(); 
         };
 
         function applyFilters() {
-            const vEst = document.getElementById('f-estado').value; const vReg = document.getElementById('f-region').value;
-            const vDis = document.getElementById('f-distri').value; const vSup = document.getElementById('f-supervisor').value;
-            const vPro = document.getElementById('f-promotor').value; const vDia = document.getElementById('f-dia').value;
+            const vVal = document.getElementById('f-validez').value; // Lee si es validas, invalidas o todas
+            const vEst = document.getElementById('f-estado').value; 
+            const vReg = document.getElementById('f-region').value;
+            const vDis = document.getElementById('f-distri').value; 
+            const vSup = document.getElementById('f-supervisor').value;
+            const vPro = document.getElementById('f-promotor').value; 
+            const vDia = document.getElementById('f-dia').value;
             
-            const isFiltered = (vEst || vReg || vDis || vSup || vPro || vDia);
-            if (!isFiltered) { resetFilters(); return; }
+            // Si solo se aplicó el filtro "Válidas" por defecto y nada más, muestra la pantalla de inicio
+            const isFiltered = (vEst || vReg || vDis || vSup || vPro || vDia || vVal !== 'validas');
 
-            DOM.startState.classList.add('hidden'); DOM.startState.classList.remove('flex');
-
+            const passVal = (t) => {
+                if (vVal === 'todas') return true;
+                const isValid = (t.Validada == 1 || t.Validada === '1' || String(t.Validada).trim().toLowerCase() === 'true');
+                return vVal === 'validas' ? isValid : !isValid;
+            };
             const passEst = (t) => vEst === '' || (vEst === 'revisadas' ? t.auditStatus !== null : t.auditStatus === null);
             const passReg = (t) => vReg === '' || t.Region === vReg; const passDis = (t) => vDis === '' || t.Distribuidor_Directa === vDis;
             const passSup = (t) => vSup === '' || t.Supervisor === vSup; const passPro = (t) => vPro === '' || t.Promotor === vPro;
             const passDia = (t) => vDia === '' || t.Dia === vDia;
 
-            filteredTasks = allTasks.filter(t => passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t));
+            filteredTasks = allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t));
 
-            updateSelectOptions('f-region', allTasks.filter(t => passEst(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t)), 'Region', vReg, 'Todas las Regiones');
-            updateSelectOptions('f-distri', allTasks.filter(t => passEst(t) && passReg(t) && passSup(t) && passPro(t) && passDia(t)), 'Distribuidor_Directa', vDis, 'Todos los Distribuidores');
-            updateSelectOptions('f-supervisor', allTasks.filter(t => passEst(t) && passReg(t) && passDis(t) && passPro(t) && passDia(t)), 'Supervisor', vSup, 'Todos los Supervisores');
-            updateSelectOptions('f-promotor', allTasks.filter(t => passEst(t) && passReg(t) && passDis(t) && passSup(t) && passDia(t)), 'Promotor', vPro, 'Todos los Promotores');
-            updateSelectOptions('f-dia', allTasks.filter(t => passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t)), 'Dia', vDia, 'Todos los Días');
+            // Actualizamos la Cascada incluyendo el filtro de validez
+            updateSelectOptions('f-region', allTasks.filter(t => passVal(t) && passEst(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t)), 'Region', vReg, 'Todas las Regiones');
+            updateSelectOptions('f-distri', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passSup(t) && passPro(t) && passDia(t)), 'Distribuidor_Directa', vDis, 'Todos los Distribuidores');
+            updateSelectOptions('f-supervisor', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passPro(t) && passDia(t)), 'Supervisor', vSup, 'Todos los Supervisores');
+            updateSelectOptions('f-promotor', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passDia(t)), 'Promotor', vPro, 'Todos los Promotores');
+            updateSelectOptions('f-dia', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t)), 'Dia', vDia, 'Todos los Días');
 
-            updateDashboard(true); 
+            updateDashboard(isFiltered); 
+
+            if (!isFiltered) { 
+                DOM.workspace.classList.add('hidden'); DOM.noResults.classList.add('hidden'); 
+                DOM.startState.classList.remove('hidden'); DOM.startState.classList.add('flex'); 
+                return; 
+            }
+
+            DOM.startState.classList.add('hidden'); DOM.startState.classList.remove('flex');
+            
             uniquePDVs = [...new Set(filteredTasks.map(t => t.Cod_Cliente))];
             if (uniquePDVs.length === 0) { DOM.workspace.classList.add('hidden'); DOM.noResults.classList.remove('hidden'); DOM.noResults.classList.add('flex'); return; }
             DOM.noResults.classList.add('hidden'); DOM.noResults.classList.remove('flex'); DOM.workspace.classList.remove('hidden'); DOM.workspace.classList.add('flex');
