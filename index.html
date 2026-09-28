@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Columnas Ordenadas</title>
+    <title>ForceAudit Pro | Columnas Perfectas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -232,26 +232,35 @@
                 const internalKeys = ['_id', 'auditStatus', 'auditReason', 'auditDate', 'Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'];
                 const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !internalKeys.includes(k));
                 
-                // === APLICAMOS TU ORDEN ESTRICTO GEOMÉTRICO (IGUAL A LA FOTO) ===
-                const fotoOrder = [
-                    'Dia', 'Rol_Promotor', 'Promotor', 'Cod_Distribuidor', 'Distribuidor', 'Distribuidor_Directa', 
-                    'Region', 'Area', 'Subregion', 'Canal', 'Tarea', 'Cod_Cliente', 'Tareas_Enviadas', 
-                    'Validada', 'Sync', 'Visita_Validada', 'Negocio'
+                // === NUEVO ORDEN ESTRICTO GEOMÉTRICO (BLOQUES BLINDADOS) ===
+                
+                // 1. Columnas Iniciales
+                const frontCols = [
+                    'Dia', 'Rol_Promotor', 'Promotor', 'Cod_Distribuidor', 'Distribuidor_Directa', 
+                    'Region', 'Area', 'Subregion', 'Canal', 'Tarea', 'Cod_Cliente', 'Tareas_Enviadas', 'Validada'
                 ];
+                
+                // 2. Columnas Clavadas al Final (Justo antes de la auditoría)
+                const preEndCols = ['Sync', 'Visita_Validada', 'Negocio'];
                 
                 let finalHeaders = [];
                 
-                // 1. Clavamos las de la foto primero
-                fotoOrder.forEach(col => {
+                // Cargamos el Bloque 1
+                frontCols.forEach(col => {
                     if (originalHeaders.includes(col) && !finalHeaders.includes(col)) { finalHeaders.push(col); }
                 });
                 
-                // 2. Si venía alguna otra columna oculta (Ej: Task_ID), la ponemos en el medio para no perderla
+                // Cargamos el Bloque 2 (Cualquier columna oculta o extra se mete al medio)
                 originalHeaders.forEach(col => {
-                    if (!finalHeaders.includes(col)) { finalHeaders.push(col); }
+                    if (!finalHeaders.includes(col) && !preEndCols.includes(col)) { finalHeaders.push(col); }
                 });
                 
-                // 3. Clavamos las 3 de auditoría rígidamente al final de todo
+                // Cargamos el Bloque 3 (Sync, Visita_Validada, Negocio - Pegadas al fondo)
+                preEndCols.forEach(col => {
+                    if (originalHeaders.includes(col) && !finalHeaders.includes(col)) { finalHeaders.push(col); }
+                });
+                
+                // Cargamos el Bloque 4 (Auditoría)
                 finalHeaders.push('Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
                 
                 // Armamos los datos forzando a que JavaScript los guarde en ese orden exacto
