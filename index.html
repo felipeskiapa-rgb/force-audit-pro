@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Columnas Blindadas</title>
+    <title>ForceAudit Pro | Columnas Definitivas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -46,7 +46,6 @@
                 </div>
             </div>
 
-            <!-- Filtros en Cascada -->
             <div id="filtersSection" class="hidden pb-3 flex flex-wrap gap-3 items-center text-sm">
                 <select id="f-estado" class="bg-indigo-50 border-indigo-200 text-indigo-800 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-300 shadow-sm transition-all w-40 font-bold"><option value="">Estado (Todos)</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
                 <div class="h-6 w-px bg-slate-300 mx-1"></div>
@@ -185,7 +184,6 @@
                     });
 
                     finalizeDataLoad();
-                    // EJECUTA SINCRONIZACIÓN INICIAL INVISIBLE (REESCRIBE Y ORDENA TODAS LAS COLUMNAS)
                     guardarEnDrive(true, true);
                 }
             });
@@ -214,9 +212,7 @@
             if (!isFullSync && pendingChanges.size === 0) {
                 if (!isAutoSave) {
                     DOM.btnSaveDrive.innerHTML = '<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg> ¡Base al día!';
-                    setTimeout(() => {
-                        DOM.btnSaveDrive.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Guardar mis cambios';
-                    }, 3000);
+                    setTimeout(() => { DOM.btnSaveDrive.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Guardar mis cambios'; }, 3000);
                 }
                 return;
             }
@@ -228,57 +224,47 @@
             let payload;
             if (isFullSync) {
                 const rawDataArray = Array.from(rawDataMap.values());
-                const internalKeys = ['_id', 'auditStatus', 'auditReason', 'auditDate', 'Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'];
-                const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !internalKeys.includes(k));
+                const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !['_id', 'auditStatus', 'auditReason', 'auditDate'].includes(k));
                 
-                // === NUEVO ORDEN ESTRICTO GEOMÉTRICO (BLOQUES BLINDADOS FLEXIBLES) ===
-                
-                const frontCols = [
+                // === ORDEN ESTRICTO EXACTAMENTE COMO PEDISTE COLUMNA POR COLUMNA ===
+                const exactOrder = [
                     'Dia', 'Rol_Promotor', 'Promotor', 'Cod_Distribuidor', 'Distribuidor_Directa', 
-                    'Region', 'Area', 'Subregion', 'Canal', 'Tarea', 'Cod_Cliente', 'Tareas_Enviadas'
+                    'Region', 'Area', 'Subregion', 'Canal', 'Tarea', 'Cod_Cliente', 'Tareas_Enviadas', 
+                    'Validada', 'Sync', 'Visita_Valida', 'Negocio', 
+                    'Supervisor', 'Link_Foto', 'Task_ID'
                 ];
-                
-                // Agrupamos Validada, Sync, Visita_Valida y Negocio para que queden pegadas al final
-                const preEndCols = ['Validada', 'Sync', 'Visita_Valid', 'Negocio'];
                 
                 let finalHeaders = [];
                 
-                const findRealName = (prefix) => {
-                    const search = prefix.toLowerCase().substring(0, 10);
-                    return originalHeaders.find(h => h.toLowerCase().includes(search));
-                };
-
-                // 1. Bloque Inicial (Foto primera parte)
-                frontCols.forEach(col => {
-                    const match = findRealName(col);
-                    if (match && !finalHeaders.includes(match)) { finalHeaders.push(match); }
-                });
-                
-                // 2. Intermedias (Columnas ocultas como Task_ID, Link_Foto, etc.)
-                originalHeaders.forEach(col => {
-                    const isAudit = ['Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'].includes(col);
-                    const isPreEnd = preEndCols.some(p => col.toLowerCase().includes(p.toLowerCase().substring(0, 10)));
-                    
-                    if (!finalHeaders.includes(col) && !isAudit && !isPreEnd) {
-                        finalHeaders.push(col); // Las ocultas van antes del cierre para no molestar
+                // 1. Cargamos todo el orden estricto forzado (busca ignorando mayúsculas y partes de texto)
+                exactOrder.forEach(col => {
+                    const match = originalHeaders.find(h => h.trim().toLowerCase() === col.toLowerCase());
+                    if (match && !finalHeaders.includes(match)) { 
+                        finalHeaders.push(match); 
+                    } else {
+                        // Si no lo encuentra exacto (ej: "Visita_Valid"), lo busca parcialmente
+                        const fuzzyMatch = originalHeaders.find(h => h.toLowerCase().includes(col.toLowerCase().substring(0, 10)));
+                        if (fuzzyMatch && !finalHeaders.includes(fuzzyMatch)) {
+                            finalHeaders.push(fuzzyMatch);
+                        }
                     }
                 });
                 
-                // 3. Bloque Pre-Final (Juntas obligatoriamente)
-                preEndCols.forEach(col => {
-                    const match = findRealName(col);
-                    if (match && !finalHeaders.includes(match)) { finalHeaders.push(match); }
+                // 2. Por seguridad, si de origen venía alguna otra columna que no listamos arriba, la ponemos acá antes del final.
+                originalHeaders.forEach(col => {
+                    const isAudit = ['Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'].map(a=>a.toLowerCase()).includes(col.toLowerCase());
+                    if (!finalHeaders.includes(col) && !isAudit) {
+                        finalHeaders.push(col);
+                    }
                 });
                 
-                // 4. Bloque Auditoría (Cierre definitivo)
+                // 3. Cierre final con las 3 columnas de Auditoría
                 finalHeaders.push('Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
-                
-                // Armamos los datos
+
                 const exportData = rawDataArray.map(row => {
                     let newRow = {}; 
-                    
                     finalHeaders.forEach(header => {
-                        if (internalKeys.includes(header)) return;
+                        if (['_id', 'auditStatus', 'auditReason', 'auditDate'].includes(header)) return;
                         newRow[header] = row[header] !== undefined ? row[header] : '';
                     });
 
@@ -311,7 +297,7 @@
                 const responseJson = await req.json();
                 
                 if(!responseJson.success) {
-                    if(!isAutoSave) { alert("⚠️ Error de guardado. Intentá de nuevo."); DOM.btnSaveDrive.innerHTML = '⚠️ Reintentar guardar'; }
+                    if(!isAutoSave) { alert("⚠️ Error de guardado."); DOM.btnSaveDrive.innerHTML = '⚠️ Reintentar guardar'; }
                     return;
                 }
                 
