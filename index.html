@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Multiusuario Activo</title>
+    <title>ForceAudit Pro | Columnas Ordenadas</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -46,6 +46,7 @@
                 </div>
             </div>
 
+            <!-- Filtros en Cascada -->
             <div id="filtersSection" class="hidden pb-3 flex flex-wrap gap-3 items-center text-sm">
                 <select id="f-estado" class="bg-indigo-50 border-indigo-200 text-indigo-800 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-300 shadow-sm transition-all w-40 font-bold"><option value="">Estado (Todos)</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
                 <div class="h-6 w-px bg-slate-300 mx-1"></div>
@@ -184,7 +185,7 @@
                     });
 
                     finalizeDataLoad();
-                    // Ejecuta el Master inicial full sync solo al abrir (ACTUALIZA DRIVE INVISIBLEMENTE)
+                    // EJECUTA SINCRONIZACIÓN INICIAL INVISIBLE (REESCRIBE Y ORDENA TODAS LAS COLUMNAS)
                     guardarEnDrive(true, true);
                 }
             });
@@ -231,61 +232,52 @@
                 const internalKeys = ['_id', 'auditStatus', 'auditReason', 'auditDate', 'Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'];
                 const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !internalKeys.includes(k));
                 
-                // --- ORDENAMIENTO ESTRICTO DE COLUMNAS ---
-                const preferredOrder = [
-                    'Dia', 'Rol_Promotor', 'Promotor', 'Cod_Distribuidor', 'Distribuidor_Directa', 'Distribuidor', 
+                // === APLICAMOS TU ORDEN ESTRICTO GEOMÉTRICO (IGUAL A LA FOTO) ===
+                const fotoOrder = [
+                    'Dia', 'Rol_Promotor', 'Promotor', 'Cod_Distribuidor', 'Distribuidor', 'Distribuidor_Directa', 
                     'Region', 'Area', 'Subregion', 'Canal', 'Tarea', 'Cod_Cliente', 'Tareas_Enviadas', 
                     'Validada', 'Sync', 'Visita_Validada', 'Negocio'
                 ];
                 
-                let sortedHeaders = [];
+                let finalHeaders = [];
                 
-                // 1. Buscamos y ubicamos primero las columnas que pasaste en la foto (en el orden exacto)
-                preferredOrder.forEach(pref => {
-                    const match = originalHeaders.find(h => h.trim() === pref || h.trim().toLowerCase().startsWith(pref.toLowerCase().substring(0, 8)));
-                    if (match && !sortedHeaders.includes(match)) {
-                        sortedHeaders.push(match);
-                    }
+                // 1. Clavamos las de la foto primero
+                fotoOrder.forEach(col => {
+                    if (originalHeaders.includes(col) && !finalHeaders.includes(col)) { finalHeaders.push(col); }
                 });
                 
-                // 2. Agregamos cualquier otra columna que venga en el archivo (Task_ID, Supervisor, Link_Foto, etc)
-                originalHeaders.forEach(h => {
-                    if (!sortedHeaders.includes(h)) sortedHeaders.push(h);
+                // 2. Si venía alguna otra columna oculta (Ej: Task_ID), la ponemos en el medio para no perderla
+                originalHeaders.forEach(col => {
+                    if (!finalHeaders.includes(col)) { finalHeaders.push(col); }
                 });
                 
-                // 3. Clavamos las 3 obligatorias al final del archivo
-                sortedHeaders.push('Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
-                // ------------------------------------------
-
+                // 3. Clavamos las 3 de auditoría rígidamente al final de todo
+                finalHeaders.push('Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
+                
+                // Armamos los datos forzando a que JavaScript los guarde en ese orden exacto
                 const exportData = rawDataArray.map(row => {
                     let newRow = {}; 
                     
-                    // Llenamos la fila en el nuevo orden estructurado
-                    sortedHeaders.forEach(header => {
+                    finalHeaders.forEach(header => {
+                        if (internalKeys.includes(header)) return; // Se manejan abajo
                         newRow[header] = row[header] !== undefined ? row[header] : '';
                     });
 
-                    // Regla de Oro para el guardado
+                    // Regla de Oro (Prioridad Humana)
                     let acreditacionValue = '';
-                    if (row.auditStatus === 'OK') {
-                        acreditacionValue = 'acreditar';
-                    } else if (row.auditStatus === 'NOK') {
-                        acreditacionValue = 'no acreditar';
-                    } else {
+                    if (row.auditStatus === 'OK') { acreditacionValue = 'acreditar'; } 
+                    else if (row.auditStatus === 'NOK') { acreditacionValue = 'no acreditar'; } 
+                    else {
                         const isValid = (row.Validada == 1 || row.Validada === '1' || String(row.Validada).trim().toLowerCase() === 'true');
-                        if (!isValid) { 
-                            acreditacionValue = 'no acreditar'; 
-                        } else { 
-                            acreditacionValue = 'acreditar'; 
-                        }
+                        if (!isValid) { acreditacionValue = 'no acreditar'; } else { acreditacionValue = 'acreditar'; }
                     }
 
                     newRow['Acreditacion'] = acreditacionValue; 
                     newRow['Motivo_Fraude'] = row.auditReason || ''; 
                     newRow['Fecha_Revision'] = row.auditDate || '';
+                    
                     return newRow;
                 });
-                
                 payload = { delta: false, csvContent: Papa.unparse(exportData) };
             } else {
                 const changesArray = Array.from(pendingChanges.values());
@@ -301,7 +293,7 @@
                 const responseJson = await req.json();
                 
                 if(!responseJson.success) {
-                    if(!isAutoSave) { alert("⚠️ Error de guardado: Otra persona está saturando el archivo o hubo un problema. Intentá de nuevo. (" + responseJson.error + ")"); DOM.btnSaveDrive.innerHTML = '⚠️ Reintentar guardar'; }
+                    if(!isAutoSave) { alert("⚠️ Error de guardado: Hubo un problema de conexión. Intentá de nuevo. (" + responseJson.error + ")"); DOM.btnSaveDrive.innerHTML = '⚠️ Reintentar guardar'; }
                     return;
                 }
                 
