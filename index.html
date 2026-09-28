@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Columnas y Filtro Válidas</title>
+    <title>ForceAudit Pro | Filtro de Tareas Activo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -46,9 +46,9 @@
                 </div>
             </div>
 
-            <!-- Filtros en Cascada con el Filtro de Validez Maestro -->
+            <!-- Filtros en Cascada con Validez y Tareas -->
             <div id="filtersSection" class="hidden pb-3 flex flex-wrap gap-3 items-center text-sm">
-                <!-- NUEVO FILTRO DE VALIDEZ -->
+                <!-- Filtro Validez -->
                 <select id="f-validez" class="bg-indigo-100 border-indigo-200 text-indigo-900 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-400 shadow-sm transition-all w-40 font-extrabold">
                     <option value="validas" selected>Solo Válidas</option>
                     <option value="invalidas">Solo Inválidas</option>
@@ -57,12 +57,17 @@
                 
                 <div class="h-6 w-px bg-slate-300 mx-1"></div>
                 
-                <select id="f-estado" class="bg-indigo-50 border-indigo-200 text-indigo-800 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-300 shadow-sm transition-all w-40 font-bold"><option value="">Estado (Todos)</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
-                <select id="f-region" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-56 truncate font-medium"><option value="">Todas las Regiones</option></select>
-                <select id="f-distri" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-72 truncate font-medium"><option value="">Todos los Distribuidores</option></select>
-                <select id="f-supervisor" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-64 truncate font-medium"><option value="">Todos los Supervisores</option></select>
-                <select id="f-promotor" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-64 truncate font-medium"><option value="">Todos los Promotores</option></select>
-                <select id="f-dia" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-40 truncate font-medium"><option value="">Todos los Días</option></select>
+                <select id="f-estado" class="bg-indigo-50 border-indigo-200 text-indigo-800 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-300 shadow-sm transition-all w-36 font-bold"><option value="">Estado (Todos)</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
+                <select id="f-region" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-48 truncate font-medium"><option value="">Todas las Regiones</option></select>
+                <select id="f-distri" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-56 truncate font-medium"><option value="">Todos los Distribuidores</option></select>
+                <select id="f-supervisor" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-56 truncate font-medium"><option value="">Todos los Supervisores</option></select>
+                <select id="f-promotor" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-56 truncate font-medium"><option value="">Todos los Promotores</option></select>
+                
+                <!-- NUEVO FILTRO DE TAREAS -->
+                <select id="f-tarea" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-64 truncate font-medium"><option value="">Todas las Tareas</option></select>
+                
+                <select id="f-dia" class="bg-white border-slate-200 text-slate-700 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-100 shadow-sm transition-all w-36 truncate font-medium"><option value="">Todos los Días</option></select>
+                
                 <button onclick="resetFilters()" class="ml-auto flex items-center gap-1 text-slate-400 hover:text-slate-700 font-semibold text-xs px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors">Limpiar Filtros</button>
             </div>
         </div>
@@ -106,7 +111,8 @@
         let allTasks = []; let filteredTasks = []; 
         let uniquePDVs = []; let currentPdvIndex = 0; let currentPdvTasks = [];
         
-        const filterIds = ['f-validez', 'f-estado', 'f-region', 'f-distri', 'f-supervisor', 'f-promotor', 'f-dia'];
+        // Se suma f-tarea al control de filtros
+        const filterIds = ['f-validez', 'f-estado', 'f-region', 'f-distri', 'f-supervisor', 'f-promotor', 'f-tarea', 'f-dia'];
 
         const DOM = {
             loading: document.getElementById('loadingIndicator'), loadingText: document.getElementById('loadingText'),
@@ -200,10 +206,7 @@
         }
 
         function finalizeDataLoad() {
-            // Guardamos TODAS las tareas en memoria
             allTasks = Array.from(rawDataMap.values());
-            
-            // Filtro por defecto: Mostrar solo las Válidas al arrancar la página
             filteredTasks = allTasks.filter(t => t.Validada == 1 || t.Validada === '1' || String(t.Validada).trim().toLowerCase() === 'true');
             
             DOM.loading.classList.add('hidden');
@@ -232,7 +235,6 @@
                 const rawDataArray = Array.from(rawDataMap.values());
                 const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !['_id', 'auditStatus', 'auditReason', 'auditDate'].includes(k));
                 
-                // ORDENAMIENTO EXACTO
                 const exactOrder = [
                     'Dia', 'Rol_Promotor', 'Promotor', 'Cod_Distribuidor', 'Distribuidor_Directa', 
                     'Region', 'Area', 'Subregion', 'Canal', 'Tarea', 'Cod_Cliente', 'Tareas_Enviadas', 
@@ -347,6 +349,7 @@
             updateSelectOptions('f-distri', baseTasks, 'Distribuidor_Directa', '', 'Todos los Distribuidores');
             updateSelectOptions('f-supervisor', baseTasks, 'Supervisor', '', 'Todos los Supervisores');
             updateSelectOptions('f-promotor', baseTasks, 'Promotor', '', 'Todos los Promotores');
+            updateSelectOptions('f-tarea', baseTasks, 'Tarea', '', 'Todas las Tareas'); // Inicializa tareas
             updateSelectOptions('f-dia', baseTasks, 'Dia', '', 'Todos los Días');
             
             filterIds.forEach(id => { document.getElementById(id).onchange = applyFilters; });
@@ -359,6 +362,7 @@
             document.getElementById('f-distri').value = '';
             document.getElementById('f-supervisor').value = '';
             document.getElementById('f-promotor').value = '';
+            document.getElementById('f-tarea').value = ''; // Resetea tareas
             document.getElementById('f-dia').value = '';
             applyFilters(); 
         };
@@ -370,9 +374,10 @@
             const vDis = document.getElementById('f-distri').value; 
             const vSup = document.getElementById('f-supervisor').value;
             const vPro = document.getElementById('f-promotor').value; 
+            const vTar = document.getElementById('f-tarea').value; // Lee la tarea
             const vDia = document.getElementById('f-dia').value;
             
-            const isFiltered = (vEst || vReg || vDis || vSup || vPro || vDia || vVal !== 'validas');
+            const isFiltered = (vEst || vReg || vDis || vSup || vPro || vTar || vDia || vVal !== 'validas');
 
             const passVal = (t) => {
                 if (vVal === 'todas') return true;
@@ -383,15 +388,19 @@
             const passEst = (t) => vEst === '' || (vEst === 'revisadas' ? t.auditStatus !== null : t.auditStatus === null);
             const passReg = (t) => vReg === '' || t.Region === vReg; const passDis = (t) => vDis === '' || t.Distribuidor_Directa === vDis;
             const passSup = (t) => vSup === '' || t.Supervisor === vSup; const passPro = (t) => vPro === '' || t.Promotor === vPro;
+            const passTar = (t) => vTar === '' || t.Tarea === vTar; // Pasa la tarea
             const passDia = (t) => vDia === '' || t.Dia === vDia;
 
-            filteredTasks = allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t));
+            // Filtra los datos maestros
+            filteredTasks = allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passTar(t) && passDia(t));
 
-            updateSelectOptions('f-region', allTasks.filter(t => passVal(t) && passEst(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t)), 'Region', vReg, 'Todas las Regiones');
-            updateSelectOptions('f-distri', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passSup(t) && passPro(t) && passDia(t)), 'Distribuidor_Directa', vDis, 'Todos los Distribuidores');
-            updateSelectOptions('f-supervisor', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passPro(t) && passDia(t)), 'Supervisor', vSup, 'Todos los Supervisores');
-            updateSelectOptions('f-promotor', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passDia(t)), 'Promotor', vPro, 'Todos los Promotores');
-            updateSelectOptions('f-dia', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t)), 'Dia', vDia, 'Todos los Días');
+            // Actualiza los menúes en cascada para que reaccionen a la selección de tareas
+            updateSelectOptions('f-region', allTasks.filter(t => passVal(t) && passEst(t) && passDis(t) && passSup(t) && passPro(t) && passTar(t) && passDia(t)), 'Region', vReg, 'Todas las Regiones');
+            updateSelectOptions('f-distri', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passSup(t) && passPro(t) && passTar(t) && passDia(t)), 'Distribuidor_Directa', vDis, 'Todos los Distribuidores');
+            updateSelectOptions('f-supervisor', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passPro(t) && passTar(t) && passDia(t)), 'Supervisor', vSup, 'Todos los Supervisores');
+            updateSelectOptions('f-promotor', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passTar(t) && passDia(t)), 'Promotor', vPro, 'Todos los Promotores');
+            updateSelectOptions('f-tarea', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t)), 'Tarea', vTar, 'Todas las Tareas');
+            updateSelectOptions('f-dia', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passTar(t)), 'Dia', vDia, 'Todos los Días');
 
             updateDashboard(isFiltered); 
             
