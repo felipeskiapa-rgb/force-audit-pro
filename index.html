@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Grilla 4x4 y Negocio</title>
+    <title>ForceAudit Pro | UI Optimizada</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,8 +20,12 @@
         .card-ok { border-color: #10b981 !important; background-color: rgba(16, 185, 129, 0.05); box-shadow: 0 4px 25px -5px rgba(16, 185, 129, 0.15); }
         .card-nok { border-color: #f43f5e !important; background-color: rgba(244, 63, 94, 0.05); box-shadow: 0 4px 25px -5px rgba(244, 63, 94, 0.15); }
         .filter-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #64748b; margin-bottom: 0.25rem; padding-left: 0.25rem; }
-        #dropdown-tarea::-webkit-scrollbar { width: 6px; }
+        
+        /* Scrollbar custom para el desplegable múltiple (Horizontal y Vertical) */
+        #dropdown-tarea::-webkit-scrollbar { width: 6px; height: 6px; }
+        #dropdown-tarea::-webkit-scrollbar-track { background: transparent; }
         #dropdown-tarea::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }
+        #dropdown-tarea::-webkit-scrollbar-corner { background: transparent; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
@@ -92,7 +96,8 @@
                             <span id="btn-tarea-text" class="truncate block pr-2">Todas las Tareas</span>
                             <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
-                        <div id="dropdown-tarea" class="hidden absolute top-full right-0 md:left-0 z-[100] w-full md:w-[400px] mt-1 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl max-h-64 overflow-y-auto py-1">
+                        <!-- overflow-auto permite scroll vertical y horizontal -->
+                        <div id="dropdown-tarea" class="hidden absolute top-full right-0 md:left-0 z-[100] w-full md:w-[400px] mt-1 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl max-h-64 overflow-auto">
                             <!-- Opciones inyectadas vía JS -->
                         </div>
                     </div>
@@ -150,7 +155,8 @@
         let uniquePDVs = []; let currentPdvIndex = 0; let currentPdvTasks = [];
         
         let selectedTareas = [];
-        // Se suma el f-negocio a la lista de control
+        let currentAvailableTareas = []; // Para saber cuáles tareas están visibles al usar "Seleccionar Todas"
+        
         const filterIds = ['f-validez', 'f-estado', 'f-region', 'f-distri', 'f-supervisor', 'f-promotor', 'f-negocio', 'f-dia'];
 
         const DOM = {
@@ -169,7 +175,7 @@
             btnPrev: document.getElementById('btnPrevPdv'), btnNext: document.getElementById('btnNextPdv')
         };
 
-        // --- SISTEMA DE DROPDOWN DE TAREAS MÚLTIPLE ---
+        // --- SISTEMA DE DROPDOWN DE TAREAS MÚLTIPLE MEJORADO ---
         function toggleTareaDropdown(e) {
             e.stopPropagation();
             document.getElementById('dropdown-tarea').classList.toggle('hidden');
@@ -185,18 +191,33 @@
         function updateTareaOptions(tasksForThisSelect, key) {
             const container = document.getElementById('dropdown-tarea');
             const uniqueVals = [...new Set(tasksForThisSelect.map(t => t[key]).filter(Boolean))].sort();
+            currentAvailableTareas = uniqueVals;
             
             let html = '';
+            
+            if(uniqueVals.length > 0) {
+                const allSelected = uniqueVals.every(v => selectedTareas.includes(v)) && selectedTareas.length > 0;
+                // Botón "Seleccionar Todas" fijo arriba
+                html += `
+                <label class="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-600 bg-slate-800 sticky top-0 z-10 w-max min-w-full">
+                    <input type="checkbox" onchange="handleSelectAllTareas(this)" class="w-4 h-4 cursor-pointer rounded border-indigo-400 bg-slate-900 flex-shrink-0" style="accent-color: #6366f1;" ${allSelected ? 'checked' : ''}>
+                    <span class="whitespace-nowrap pr-6 text-indigo-300 font-bold text-[13px]">Seleccionar Todas</span>
+                </label>
+                `;
+            }
+
             uniqueVals.forEach(v => {
                 const isChecked = selectedTareas.includes(v) ? 'checked' : '';
                 html += `
-                <label class="flex items-center gap-3 px-3 py-2 hover:bg-slate-700 cursor-pointer transition-colors text-slate-200 font-medium text-[13px] border-b border-slate-700/50 last:border-0">
-                    <input type="checkbox" value="${v.replace(/"/g, '&quot;')}" onchange="handleTareaChange(this)" class="w-4 h-4 cursor-pointer rounded border-slate-500 bg-slate-900" style="accent-color: #6366f1;" ${isChecked}>
-                    <span class="truncate">${v}</span>
+                <label class="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-700 cursor-pointer transition-colors text-slate-200 font-medium text-[13px] border-b border-slate-700/50 last:border-0 w-max min-w-full">
+                    <input type="checkbox" value="${v.replace(/"/g, '&quot;')}" onchange="handleTareaChange(this)" class="w-4 h-4 cursor-pointer rounded border-slate-500 bg-slate-900 flex-shrink-0" style="accent-color: #6366f1;" ${isChecked}>
+                    <span class="whitespace-nowrap pr-6">${v}</span>
                 </label>
                 `;
             });
+            
             if(uniqueVals.length === 0) html = '<div class="px-4 py-3 text-slate-400 text-sm text-center">No hay tareas</div>';
+            
             container.innerHTML = html;
             updateTareaButtonText();
         }
@@ -206,6 +227,20 @@
                 if(!selectedTareas.includes(cb.value)) selectedTareas.push(cb.value);
             } else {
                 selectedTareas = selectedTareas.filter(t => t !== cb.value);
+            }
+            updateTareaButtonText();
+            applyFilters();
+        }
+        
+        function handleSelectAllTareas(cb) {
+            if(cb.checked) {
+                // Selecciona todas las que están visibles
+                currentAvailableTareas.forEach(t => {
+                    if(!selectedTareas.includes(t)) selectedTareas.push(t);
+                });
+            } else {
+                // Destilda todas las que están visibles
+                selectedTareas = selectedTareas.filter(t => !currentAvailableTareas.includes(t));
             }
             updateTareaButtonText();
             applyFilters();
@@ -224,6 +259,7 @@
                 btn.classList.add('text-indigo-400');
             }
         }
+        // ---------------------------------------------
 
         function formatCodCliente(val) {
             if (!val) return '';
