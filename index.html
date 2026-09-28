@@ -46,7 +46,6 @@
                 </div>
             </div>
 
-            <!-- Filtros en Cascada -->
             <div id="filtersSection" class="hidden pb-3 flex flex-wrap gap-3 items-center text-sm">
                 <select id="f-estado" class="bg-indigo-50 border-indigo-200 text-indigo-800 rounded-xl py-1.5 px-3 pr-8 focus:ring-2 focus:ring-indigo-300 shadow-sm transition-all w-40 font-bold"><option value="">Estado (Todos)</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
                 <div class="h-6 w-px bg-slate-300 mx-1"></div>
@@ -185,7 +184,7 @@
                     });
 
                     finalizeDataLoad();
-                    // Ejecuta el Master inicial full sync solo al abrir
+                    // Ejecuta el Master inicial full sync solo al abrir (ACTUALIZA DRIVE INVISIBLEMENTE)
                     guardarEnDrive(true, true);
                 }
             });
@@ -229,22 +228,50 @@
             let payload;
             if (isFullSync) {
                 const rawDataArray = Array.from(rawDataMap.values());
-                const internalKeys = ['_id', 'auditStatus', 'auditReason', 'auditDate'];
+                const internalKeys = ['_id', 'auditStatus', 'auditReason', 'auditDate', 'Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'];
                 const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !internalKeys.includes(k));
-                if(!originalHeaders.includes('Acreditacion')) originalHeaders.push('Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
+                
+                // --- ORDENAMIENTO ESTRICTO DE COLUMNAS ---
+                const preferredOrder = [
+                    'Dia', 'Rol_Promotor', 'Promotor', 'Cod_Distribuidor', 'Distribuidor_Directa', 'Distribuidor', 
+                    'Region', 'Area', 'Subregion', 'Canal', 'Tarea', 'Cod_Cliente', 'Tareas_Enviadas', 
+                    'Validada', 'Sync', 'Visita_Validada', 'Negocio'
+                ];
+                
+                let sortedHeaders = [];
+                
+                // 1. Buscamos y ubicamos primero las columnas que pasaste en la foto (en el orden exacto)
+                preferredOrder.forEach(pref => {
+                    const match = originalHeaders.find(h => h.trim() === pref || h.trim().toLowerCase().startsWith(pref.toLowerCase().substring(0, 8)));
+                    if (match && !sortedHeaders.includes(match)) {
+                        sortedHeaders.push(match);
+                    }
+                });
+                
+                // 2. Agregamos cualquier otra columna que venga en el archivo (Task_ID, Supervisor, Link_Foto, etc)
+                originalHeaders.forEach(h => {
+                    if (!sortedHeaders.includes(h)) sortedHeaders.push(h);
+                });
+                
+                // 3. Clavamos las 3 obligatorias al final del archivo
+                sortedHeaders.push('Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
+                // ------------------------------------------
 
                 const exportData = rawDataArray.map(row => {
-                    let newRow = {}; originalHeaders.forEach(header => newRow[header] = row[header] || '');
+                    let newRow = {}; 
                     
+                    // Llenamos la fila en el nuevo orden estructurado
+                    sortedHeaders.forEach(header => {
+                        newRow[header] = row[header] !== undefined ? row[header] : '';
+                    });
+
+                    // Regla de Oro para el guardado
                     let acreditacionValue = '';
-                    
-                    // REGLA DE ORO: La decisión humana siempre manda
                     if (row.auditStatus === 'OK') {
                         acreditacionValue = 'acreditar';
                     } else if (row.auditStatus === 'NOK') {
                         acreditacionValue = 'no acreditar';
                     } else {
-                        // Si el humano no la tocó, el sistema automático decide en base a la columna "Validada"
                         const isValid = (row.Validada == 1 || row.Validada === '1' || String(row.Validada).trim().toLowerCase() === 'true');
                         if (!isValid) { 
                             acreditacionValue = 'no acreditar'; 
@@ -258,6 +285,7 @@
                     newRow['Fecha_Revision'] = row.auditDate || '';
                     return newRow;
                 });
+                
                 payload = { delta: false, csvContent: Papa.unparse(exportData) };
             } else {
                 const changesArray = Array.from(pendingChanges.values());
