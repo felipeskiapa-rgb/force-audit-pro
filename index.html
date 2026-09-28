@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Dark Mode</title>
+    <title>ForceAudit Pro | Grilla 4x4 y Negocio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -16,12 +16,12 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; border: 2px solid #0f172a; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
         .card-animate { animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
-        /* Chevron customizado para modo oscuro */
         select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1em; }
-        /* Estados de tarjetas en modo oscuro */
         .card-ok { border-color: #10b981 !important; background-color: rgba(16, 185, 129, 0.05); box-shadow: 0 4px 25px -5px rgba(16, 185, 129, 0.15); }
         .card-nok { border-color: #f43f5e !important; background-color: rgba(244, 63, 94, 0.05); box-shadow: 0 4px 25px -5px rgba(244, 63, 94, 0.15); }
         .filter-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #64748b; margin-bottom: 0.25rem; padding-left: 0.25rem; }
+        #dropdown-tarea::-webkit-scrollbar { width: 6px; }
+        #dropdown-tarea::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
@@ -49,9 +49,9 @@
                 </div>
             </div>
 
-            <!-- Nuevo Diseño UX de Filtros en Grid -->
+            <!-- Grilla 4x2 de Filtros -->
             <div id="filtersSection" class="hidden pb-5 pt-2">
-                <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-x-4 gap-y-3 w-full items-end">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-4 w-full items-end">
                     
                     <!-- Fila 1 -->
                     <div class="flex flex-col">
@@ -62,12 +62,6 @@
                         <label class="filter-label">Estado Auditoría</label>
                         <select id="f-estado" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-semibold transition-all"><option value="">Todos</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
                     </div>
-                    <div class="flex flex-col md:col-span-2">
-                        <label class="filter-label">Detalle de Tarea</label>
-                        <select id="f-tarea" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todas las Tareas</option></select>
-                    </div>
-
-                    <!-- Fila 2 -->
                     <div class="flex flex-col">
                         <label class="filter-label">Día</label>
                         <select id="f-dia" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select>
@@ -76,6 +70,8 @@
                         <label class="filter-label">Región</label>
                         <select id="f-region" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todas</option></select>
                     </div>
+
+                    <!-- Fila 2 -->
                     <div class="flex flex-col">
                         <label class="filter-label">Supervisor</label>
                         <select id="f-supervisor" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select>
@@ -84,11 +80,27 @@
                         <label class="filter-label">Distribuidor</label>
                         <select id="f-distri" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select>
                     </div>
+                    <div class="flex flex-col">
+                        <label class="filter-label">Negocio</label>
+                        <select id="f-negocio" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select>
+                    </div>
                     
-                    <!-- Fila oculta (pero necesaria) y Botón limpiar -->
+                    <!-- DROPDOWN MÚLTIPLE DE TAREAS -->
+                    <div class="flex flex-col relative" id="container-tarea">
+                        <label class="filter-label">Detalle Tarea (Múltiple)</label>
+                        <button id="btn-tarea" onclick="toggleTareaDropdown(event)" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 text-left font-medium transition-all flex justify-between items-center h-[42px] focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <span id="btn-tarea-text" class="truncate block pr-2">Todas las Tareas</span>
+                            <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div id="dropdown-tarea" class="hidden absolute top-full right-0 md:left-0 z-[100] w-full md:w-[400px] mt-1 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl max-h-64 overflow-y-auto py-1">
+                            <!-- Opciones inyectadas vía JS -->
+                        </div>
+                    </div>
+                    
+                    <!-- Fila oculta (Promotor interno) -->
                     <select id="f-promotor" class="hidden"><option value=""></option></select>
                 </div>
-                <div class="mt-4 flex justify-end">
+                <div class="mt-5 flex justify-end">
                     <button onclick="resetFilters()" class="flex items-center gap-1.5 text-slate-400 hover:text-white font-bold text-xs px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-700">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                         Limpiar todos los filtros
@@ -99,7 +111,6 @@
     </header>
 
     <main class="flex-grow flex flex-col max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 relative">
-        <!-- Dashboard Oscuro -->
         <div id="dashboardStats" class="hidden grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 w-full">
             <div class="bg-slate-800/80 rounded-2xl p-4 border border-slate-700 flex flex-col justify-center"><p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1"><span id="lblBase">Válidas (Filtro)</span></p><p class="text-2xl font-extrabold text-white" id="kpiTotal">0</p></div>
             <div class="bg-indigo-900/20 rounded-2xl p-4 border border-indigo-500/20 flex flex-col justify-center"><p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-1">Auditadas</p><p class="text-2xl font-extrabold text-indigo-400" id="kpiAuditadas">0</p></div>
@@ -114,7 +125,6 @@
         <div id="noResults" class="hidden flex-col items-center justify-center py-20 text-center"><h2 class="text-xl font-bold text-white tracking-tight">No hay tareas para estos filtros</h2></div>
 
         <div id="pdvWorkspace" class="hidden flex-col flex-grow">
-            <!-- Barra Navegación PDV -->
             <div class="bg-slate-800/80 rounded-2xl border border-slate-700 p-4 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-lg">
                 <button onclick="prevPDV()" id="btnPrevPdv" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 px-6 rounded-xl transition-colors">&lt; PDV Anterior</button>
                 <div class="text-center flex-grow">
@@ -139,7 +149,9 @@
         let allTasks = []; let filteredTasks = []; 
         let uniquePDVs = []; let currentPdvIndex = 0; let currentPdvTasks = [];
         
-        const filterIds = ['f-validez', 'f-estado', 'f-region', 'f-distri', 'f-supervisor', 'f-promotor', 'f-tarea', 'f-dia'];
+        let selectedTareas = [];
+        // Se suma el f-negocio a la lista de control
+        const filterIds = ['f-validez', 'f-estado', 'f-region', 'f-distri', 'f-supervisor', 'f-promotor', 'f-negocio', 'f-dia'];
 
         const DOM = {
             loading: document.getElementById('loadingIndicator'), loadingText: document.getElementById('loadingText'),
@@ -156,6 +168,62 @@
             navDistri: document.getElementById('navDistri'), taskCount: document.getElementById('taskCount'), 
             btnPrev: document.getElementById('btnPrevPdv'), btnNext: document.getElementById('btnNextPdv')
         };
+
+        // --- SISTEMA DE DROPDOWN DE TAREAS MÚLTIPLE ---
+        function toggleTareaDropdown(e) {
+            e.stopPropagation();
+            document.getElementById('dropdown-tarea').classList.toggle('hidden');
+        }
+
+        document.addEventListener('click', (e) => {
+            const container = document.getElementById('container-tarea');
+            if (container && !container.contains(e.target)) {
+                document.getElementById('dropdown-tarea').classList.add('hidden');
+            }
+        });
+
+        function updateTareaOptions(tasksForThisSelect, key) {
+            const container = document.getElementById('dropdown-tarea');
+            const uniqueVals = [...new Set(tasksForThisSelect.map(t => t[key]).filter(Boolean))].sort();
+            
+            let html = '';
+            uniqueVals.forEach(v => {
+                const isChecked = selectedTareas.includes(v) ? 'checked' : '';
+                html += `
+                <label class="flex items-center gap-3 px-3 py-2 hover:bg-slate-700 cursor-pointer transition-colors text-slate-200 font-medium text-[13px] border-b border-slate-700/50 last:border-0">
+                    <input type="checkbox" value="${v.replace(/"/g, '&quot;')}" onchange="handleTareaChange(this)" class="w-4 h-4 cursor-pointer rounded border-slate-500 bg-slate-900" style="accent-color: #6366f1;" ${isChecked}>
+                    <span class="truncate">${v}</span>
+                </label>
+                `;
+            });
+            if(uniqueVals.length === 0) html = '<div class="px-4 py-3 text-slate-400 text-sm text-center">No hay tareas</div>';
+            container.innerHTML = html;
+            updateTareaButtonText();
+        }
+
+        function handleTareaChange(cb) {
+            if(cb.checked) {
+                if(!selectedTareas.includes(cb.value)) selectedTareas.push(cb.value);
+            } else {
+                selectedTareas = selectedTareas.filter(t => t !== cb.value);
+            }
+            updateTareaButtonText();
+            applyFilters();
+        }
+
+        function updateTareaButtonText() {
+            const btn = document.getElementById('btn-tarea-text');
+            if(selectedTareas.length === 0) {
+                btn.textContent = 'Todas las Tareas';
+                btn.classList.remove('text-indigo-400');
+            } else if(selectedTareas.length === 1) {
+                btn.textContent = '1 Tarea filtrada';
+                btn.classList.add('text-indigo-400');
+            } else {
+                btn.textContent = `${selectedTareas.length} Tareas filtradas`;
+                btn.classList.add('text-indigo-400');
+            }
+        }
 
         function formatCodCliente(val) {
             if (!val) return '';
@@ -375,8 +443,9 @@
             updateSelectOptions('f-region', baseTasks, 'Region', '', 'Todas las Regiones');
             updateSelectOptions('f-distri', baseTasks, 'Distribuidor_Directa', '', 'Todos los Distribuidores');
             updateSelectOptions('f-supervisor', baseTasks, 'Supervisor', '', 'Todos los Supervisores');
+            updateSelectOptions('f-negocio', baseTasks, 'Negocio', '', 'Todos los Negocios');
             updateSelectOptions('f-promotor', baseTasks, 'Promotor', '', 'Todos los Promotores');
-            updateSelectOptions('f-tarea', baseTasks, 'Tarea', '', 'Todas las Tareas');
+            updateTareaOptions(baseTasks, 'Tarea');
             updateSelectOptions('f-dia', baseTasks, 'Dia', '', 'Todos los Días');
             
             filterIds.forEach(id => { document.getElementById(id).onchange = applyFilters; });
@@ -388,8 +457,9 @@
             document.getElementById('f-region').value = '';
             document.getElementById('f-distri').value = '';
             document.getElementById('f-supervisor').value = '';
+            document.getElementById('f-negocio').value = '';
             document.getElementById('f-promotor').value = '';
-            document.getElementById('f-tarea').value = ''; 
+            selectedTareas = []; 
             document.getElementById('f-dia').value = '';
             applyFilters(); 
         };
@@ -400,11 +470,11 @@
             const vReg = document.getElementById('f-region').value;
             const vDis = document.getElementById('f-distri').value; 
             const vSup = document.getElementById('f-supervisor').value;
+            const vNeg = document.getElementById('f-negocio').value;
             const vPro = document.getElementById('f-promotor').value; 
-            const vTar = document.getElementById('f-tarea').value; 
             const vDia = document.getElementById('f-dia').value;
             
-            const isFiltered = (vEst || vReg || vDis || vSup || vPro || vTar || vDia || vVal !== 'validas');
+            const isFiltered = (vEst || vReg || vDis || vSup || vNeg || vPro || selectedTareas.length > 0 || vDia || vVal !== 'validas');
 
             const passVal = (t) => {
                 if (vVal === 'todas') return true;
@@ -413,19 +483,23 @@
             };
 
             const passEst = (t) => vEst === '' || (vEst === 'revisadas' ? t.auditStatus !== null : t.auditStatus === null);
-            const passReg = (t) => vReg === '' || t.Region === vReg; const passDis = (t) => vDis === '' || t.Distribuidor_Directa === vDis;
-            const passSup = (t) => vSup === '' || t.Supervisor === vSup; const passPro = (t) => vPro === '' || t.Promotor === vPro;
-            const passTar = (t) => vTar === '' || t.Tarea === vTar; 
+            const passReg = (t) => vReg === '' || t.Region === vReg; 
+            const passDis = (t) => vDis === '' || t.Distribuidor_Directa === vDis;
+            const passSup = (t) => vSup === '' || t.Supervisor === vSup; 
+            const passNeg = (t) => vNeg === '' || t.Negocio === vNeg;
+            const passPro = (t) => vPro === '' || t.Promotor === vPro;
+            const passTar = (t) => selectedTareas.length === 0 || selectedTareas.includes(t.Tarea); 
             const passDia = (t) => vDia === '' || t.Dia === vDia;
 
-            filteredTasks = allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passTar(t) && passDia(t));
+            filteredTasks = allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passNeg(t) && passPro(t) && passTar(t) && passDia(t));
 
-            updateSelectOptions('f-region', allTasks.filter(t => passVal(t) && passEst(t) && passDis(t) && passSup(t) && passPro(t) && passTar(t) && passDia(t)), 'Region', vReg, 'Todas las Regiones');
-            updateSelectOptions('f-distri', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passSup(t) && passPro(t) && passTar(t) && passDia(t)), 'Distribuidor_Directa', vDis, 'Todos los Distribuidores');
-            updateSelectOptions('f-supervisor', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passPro(t) && passTar(t) && passDia(t)), 'Supervisor', vSup, 'Todos los Supervisores');
-            updateSelectOptions('f-promotor', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passTar(t) && passDia(t)), 'Promotor', vPro, 'Todos los Promotores');
-            updateSelectOptions('f-tarea', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passDia(t)), 'Tarea', vTar, 'Todas las Tareas');
-            updateSelectOptions('f-dia', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passTar(t)), 'Dia', vDia, 'Todos los Días');
+            updateSelectOptions('f-region', allTasks.filter(t => passVal(t) && passEst(t) && passDis(t) && passSup(t) && passNeg(t) && passPro(t) && passTar(t) && passDia(t)), 'Region', vReg, 'Todas las Regiones');
+            updateSelectOptions('f-distri', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passSup(t) && passNeg(t) && passPro(t) && passTar(t) && passDia(t)), 'Distribuidor_Directa', vDis, 'Todos los Distribuidores');
+            updateSelectOptions('f-supervisor', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passNeg(t) && passPro(t) && passTar(t) && passDia(t)), 'Supervisor', vSup, 'Todos los Supervisores');
+            updateSelectOptions('f-negocio', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passPro(t) && passTar(t) && passDia(t)), 'Negocio', vNeg, 'Todos los Negocios');
+            updateSelectOptions('f-promotor', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passNeg(t) && passTar(t) && passDia(t)), 'Promotor', vPro, 'Todos los Promotores');
+            updateTareaOptions(allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passNeg(t) && passPro(t) && passDia(t)), 'Tarea');
+            updateSelectOptions('f-dia', allTasks.filter(t => passVal(t) && passEst(t) && passReg(t) && passDis(t) && passSup(t) && passNeg(t) && passPro(t) && passTar(t)), 'Dia', vDia, 'Todos los Días');
 
             updateDashboard(isFiltered); 
             
