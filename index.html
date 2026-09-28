@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | UI Optimizada</title>
+    <title>ForceAudit Pro | Botonera Reparada</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,12 +20,9 @@
         .card-ok { border-color: #10b981 !important; background-color: rgba(16, 185, 129, 0.05); box-shadow: 0 4px 25px -5px rgba(16, 185, 129, 0.15); }
         .card-nok { border-color: #f43f5e !important; background-color: rgba(244, 63, 94, 0.05); box-shadow: 0 4px 25px -5px rgba(244, 63, 94, 0.15); }
         .filter-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: #64748b; margin-bottom: 0.25rem; padding-left: 0.25rem; }
-        
-        /* Scrollbar custom para el desplegable múltiple (Horizontal y Vertical) */
         #dropdown-tarea::-webkit-scrollbar { width: 6px; height: 6px; }
         #dropdown-tarea::-webkit-scrollbar-track { background: transparent; }
         #dropdown-tarea::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }
-        #dropdown-tarea::-webkit-scrollbar-corner { background: transparent; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
@@ -53,56 +50,30 @@
                 </div>
             </div>
 
-            <!-- Grilla 4x2 de Filtros -->
             <div id="filtersSection" class="hidden pb-5 pt-2">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-4 w-full items-end">
-                    
                     <!-- Fila 1 -->
-                    <div class="flex flex-col">
-                        <label class="filter-label text-indigo-400">Tipo de Tarea</label>
-                        <select id="f-validez" class="w-full bg-indigo-900/30 border border-indigo-500/30 text-indigo-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-bold transition-all"><option value="validas" selected>Solo Válidas</option><option value="invalidas">Solo Inválidas</option><option value="todas">Ver Todas</option></select>
-                    </div>
-                    <div class="flex flex-col">
-                        <label class="filter-label">Estado Auditoría</label>
-                        <select id="f-estado" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-semibold transition-all"><option value="">Todos</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select>
-                    </div>
-                    <div class="flex flex-col">
-                        <label class="filter-label">Día</label>
-                        <select id="f-dia" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select>
-                    </div>
-                    <div class="flex flex-col">
-                        <label class="filter-label">Región</label>
-                        <select id="f-region" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todas</option></select>
-                    </div>
+                    <div class="flex flex-col"><label class="filter-label text-indigo-400">Tipo de Tarea</label><select id="f-validez" class="w-full bg-indigo-900/30 border border-indigo-500/30 text-indigo-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-bold transition-all"><option value="validas" selected>Solo Válidas</option><option value="invalidas">Solo Inválidas</option><option value="todas">Ver Todas</option></select></div>
+                    <div class="flex flex-col"><label class="filter-label">Estado Auditoría</label><select id="f-estado" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-semibold transition-all"><option value="">Todos</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select></div>
+                    <div class="flex flex-col"><label class="filter-label">Día</label><select id="f-dia" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select></div>
+                    <div class="flex flex-col"><label class="filter-label">Región</label><select id="f-region" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todas</option></select></div>
 
                     <!-- Fila 2 -->
-                    <div class="flex flex-col">
-                        <label class="filter-label">Supervisor</label>
-                        <select id="f-supervisor" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select>
-                    </div>
-                    <div class="flex flex-col">
-                        <label class="filter-label">Distribuidor</label>
-                        <select id="f-distri" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select>
-                    </div>
-                    <div class="flex flex-col">
-                        <label class="filter-label">Negocio</label>
-                        <select id="f-negocio" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select>
-                    </div>
+                    <div class="flex flex-col"><label class="filter-label">Supervisor</label><select id="f-supervisor" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select></div>
+                    <div class="flex flex-col"><label class="filter-label">Distribuidor</label><select id="f-distri" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select></div>
+                    <div class="flex flex-col"><label class="filter-label">Negocio</label><select id="f-negocio" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select></div>
                     
-                    <!-- DROPDOWN MÚLTIPLE DE TAREAS -->
                     <div class="flex flex-col relative" id="container-tarea">
                         <label class="filter-label">Detalle Tarea (Múltiple)</label>
                         <button id="btn-tarea" onclick="toggleTareaDropdown(event)" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 text-left font-medium transition-all flex justify-between items-center h-[42px] focus:ring-2 focus:ring-indigo-500 outline-none">
                             <span id="btn-tarea-text" class="truncate block pr-2">Todas las Tareas</span>
                             <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
-                        <!-- overflow-auto permite scroll vertical y horizontal -->
                         <div id="dropdown-tarea" class="hidden absolute top-full right-0 md:left-0 z-[100] w-full md:w-[400px] mt-1 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl max-h-64 overflow-auto">
-                            <!-- Opciones inyectadas vía JS -->
+                            <!-- Inyectado JS -->
                         </div>
                     </div>
                     
-                    <!-- Fila oculta (Promotor interno) -->
                     <select id="f-promotor" class="hidden"><option value=""></option></select>
                 </div>
                 <div class="mt-5 flex justify-end">
@@ -155,8 +126,7 @@
         let uniquePDVs = []; let currentPdvIndex = 0; let currentPdvTasks = [];
         
         let selectedTareas = [];
-        let currentAvailableTareas = []; // Para saber cuáles tareas están visibles al usar "Seleccionar Todas"
-        
+        let currentAvailableTareas = []; 
         const filterIds = ['f-validez', 'f-estado', 'f-region', 'f-distri', 'f-supervisor', 'f-promotor', 'f-negocio', 'f-dia'];
 
         const DOM = {
@@ -175,7 +145,6 @@
             btnPrev: document.getElementById('btnPrevPdv'), btnNext: document.getElementById('btnNextPdv')
         };
 
-        // --- SISTEMA DE DROPDOWN DE TAREAS MÚLTIPLE MEJORADO ---
         function toggleTareaDropdown(e) {
             e.stopPropagation();
             document.getElementById('dropdown-tarea').classList.toggle('hidden');
@@ -183,8 +152,9 @@
 
         document.addEventListener('click', (e) => {
             const container = document.getElementById('container-tarea');
-            if (container && !container.contains(e.target)) {
-                document.getElementById('dropdown-tarea').classList.add('hidden');
+            const dropdown = document.getElementById('dropdown-tarea');
+            if (container && dropdown && !container.contains(e.target)) {
+                dropdown.classList.add('hidden');
             }
         });
 
@@ -197,7 +167,6 @@
             
             if(uniqueVals.length > 0) {
                 const allSelected = uniqueVals.every(v => selectedTareas.includes(v)) && selectedTareas.length > 0;
-                // Botón "Seleccionar Todas" fijo arriba
                 html += `
                 <label class="flex items-center gap-3 px-4 py-3 hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-600 bg-slate-800 sticky top-0 z-10 w-max min-w-full">
                     <input type="checkbox" onchange="handleSelectAllTareas(this)" class="w-4 h-4 cursor-pointer rounded border-indigo-400 bg-slate-900 flex-shrink-0" style="accent-color: #6366f1;" ${allSelected ? 'checked' : ''}>
@@ -234,12 +203,10 @@
         
         function handleSelectAllTareas(cb) {
             if(cb.checked) {
-                // Selecciona todas las que están visibles
                 currentAvailableTareas.forEach(t => {
                     if(!selectedTareas.includes(t)) selectedTareas.push(t);
                 });
             } else {
-                // Destilda todas las que están visibles
                 selectedTareas = selectedTareas.filter(t => !currentAvailableTareas.includes(t));
             }
             updateTareaButtonText();
@@ -259,7 +226,6 @@
                 btn.classList.add('text-indigo-400');
             }
         }
-        // ---------------------------------------------
 
         function formatCodCliente(val) {
             if (!val) return '';
@@ -441,9 +407,42 @@
             pendingChanges.set(task._id, { Task_ID: task.Task_ID, Acreditacion: task.auditStatus === 'NOK' ? 'no acreditar' : 'acreditar', Motivo_Fraude: task.auditReason, Fecha_Revision: task.auditDate });
         }
 
-        window.marcarOK = (id) => { const task = allTasks.find(t => t._id === id); if (task) { task.auditStatus = 'OK'; task.auditReason = ''; task.auditDate = getTimestamp(); registerChange(task); renderCardStyleOnly(task); updateDashboard(true); checkAutoAdvance(); } };
-        window.toggleNokPanel = (id) => { const actionsPanel = document.getElementById(`actions-${id}`); const nokPanel = document.getElementById(`nok-panel-${id}`); if (nokPanel.classList.contains('hidden')) { nokPanel.classList.remove('hidden'); nokPanel.classList.add('flex'); actionsPanel.classList.add('hidden'); } else { nokPanel.classList.add('hidden'); nokPanel.classList.remove('flex'); actionsPanel.classList.add('hidden'); } };
-        window.confirmarNOK = (id) => { const reason = document.getElementById(`reason-${id}`)[document.getElementById(`reason-${id}`).selectedIndex].value; if (!reason) { alert("Por favor, elegí un motivo."); return; } const task = allTasks.find(t => t._id === id); if (task) { task.auditStatus = 'NOK'; task.auditReason = reason; task.auditDate = getTimestamp(); registerChange(task); renderCardStyleOnly(task); toggleNokPanel(id); updateDashboard(true); checkAutoAdvance(); } };
+        window.marcarOK = (id) => { 
+            try {
+                const task = allTasks.find(t => t._id === String(id)); 
+                if (task) { 
+                    task.auditStatus = 'OK'; task.auditReason = ''; task.auditDate = getTimestamp(); 
+                    registerChange(task); renderCardStyleOnly(task); updateDashboard(true); checkAutoAdvance(); 
+                } 
+            } catch(e) { console.error(e); }
+        };
+        
+        window.toggleNokPanel = (id) => { 
+            try {
+                const actionsPanel = document.getElementById(`actions-${id}`); 
+                const nokPanel = document.getElementById(`nok-panel-${id}`); 
+                if (nokPanel.classList.contains('hidden')) { 
+                    nokPanel.classList.remove('hidden'); nokPanel.classList.add('flex'); 
+                    actionsPanel.classList.add('hidden'); actionsPanel.classList.remove('flex'); 
+                } else { 
+                    nokPanel.classList.add('hidden'); nokPanel.classList.remove('flex'); 
+                    actionsPanel.classList.remove('hidden'); actionsPanel.classList.add('flex'); 
+                } 
+            } catch(e) { console.error(e); }
+        };
+        
+        window.confirmarNOK = (id) => { 
+            try {
+                const selectElement = document.getElementById(`reason-${id}`);
+                const reason = selectElement[selectElement.selectedIndex].value; 
+                if (!reason) { alert("Por favor, elegí un motivo."); return; } 
+                const task = allTasks.find(t => t._id === String(id)); 
+                if (task) { 
+                    task.auditStatus = 'NOK'; task.auditReason = reason; task.auditDate = getTimestamp(); 
+                    registerChange(task); renderCardStyleOnly(task); toggleNokPanel(id); updateDashboard(true); checkAutoAdvance(); 
+                }
+            } catch(e) { console.error(e); }
+        };
 
         function updateDashboard(isFiltered = false) {
             const vVal = document.getElementById('f-validez') ? document.getElementById('f-validez').value : 'validas';
@@ -466,6 +465,7 @@
 
         function updateSelectOptions(id, tasksForThisSelect, key, currentValue, defaultText) {
             const sel = document.getElementById(id);
+            if(!sel) return;
             const uniqueVals = [...new Set(tasksForThisSelect.map(t => t[key]).filter(Boolean))].sort();
             sel.innerHTML = `<option value="">${defaultText}</option>`;
             uniqueVals.forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.textContent = v; if (v === currentValue) opt.selected = true; sel.appendChild(opt); });
@@ -484,7 +484,10 @@
             updateTareaOptions(baseTasks, 'Tarea');
             updateSelectOptions('f-dia', baseTasks, 'Dia', '', 'Todos los Días');
             
-            filterIds.forEach(id => { document.getElementById(id).onchange = applyFilters; });
+            filterIds.forEach(id => { 
+                const el = document.getElementById(id);
+                if(el) el.onchange = applyFilters; 
+            });
         }
 
         window.resetFilters = () => {
@@ -553,7 +556,30 @@
             currentPdvIndex = 0; renderCurrentPDV();
         }
 
+        window.nextPDV = () => { 
+            try {
+                if (uniquePDVs.length > 0 && currentPdvIndex < uniquePDVs.length - 1) { 
+                    currentPdvIndex++; 
+                    renderCurrentPDV(); 
+                    window.scrollTo({ top: 0, behavior: 'smooth' }); 
+                } 
+            } catch(e) { console.error(e); }
+        };
+        
+        window.prevPDV = () => { 
+            try {
+                if (currentPdvIndex > 0) { 
+                    currentPdvIndex--; 
+                    renderCurrentPDV(); 
+                    window.scrollTo({ top: 0, behavior: 'smooth' }); 
+                } 
+            } catch(e) { console.error(e); }
+        };
+        
+        const getTimestamp = () => new Date().toLocaleString('es-AR');
+
         function renderCurrentPDV() {
+            if (uniquePDVs.length === 0) return;
             const currentPdvId = uniquePDVs[currentPdvIndex];
             currentPdvTasks = filteredTasks.filter(t => t.Cod_Cliente === currentPdvId);
             
@@ -565,7 +591,9 @@
             DOM.taskCount.textContent = currentPdvTasks.length;
 
             DOM.btnPrev.disabled = currentPdvIndex === 0; DOM.btnPrev.style.opacity = currentPdvIndex === 0 ? '0.5' : '1';
-            DOM.btnNext.disabled = currentPdvIndex === uniquePDVs.length - 1; DOM.btnNext.style.opacity = currentPdvIndex === uniquePDVs.length - 1 ? '0.5' : '1';
+            DOM.btnNext.disabled = currentPdvIndex >= uniquePDVs.length - 1; DOM.btnNext.style.opacity = currentPdvIndex >= uniquePDVs.length - 1 ? '0.5' : '1';
+            DOM.btnNext.style.cursor = currentPdvIndex >= uniquePDVs.length - 1 ? 'not-allowed' : 'pointer';
+            
             DOM.cardsGrid.innerHTML = '';
             
             currentPdvTasks.forEach((task, index) => {
@@ -576,6 +604,7 @@
                 if (task.auditStatus === 'OK') { borderClass = 'card-ok'; statusBadge = `<div class="absolute top-3 right-3 bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] border border-emerald-400 z-10">VÁLIDA</div>`; } 
                 else if (task.auditStatus === 'NOK') { borderClass = 'card-nok'; statusBadge = `<div class="absolute top-3 right-3 bg-rose-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-[0_0_10px_rgba(244,63,94,0.5)] border border-rose-400 z-10" title="${task.auditReason}">FRAUDE</div>`; }
 
+                const safeId = task._id ? task._id.replace(/'/g, "\\'") : '';
                 const card = document.createElement('div');
                 card.id = `card-${task._id}`; card.className = `card-animate bg-slate-800 rounded-2xl border ${borderClass} overflow-hidden flex flex-col relative transition-all duration-300 hover:border-indigo-500/50 group`; card.style.animationDelay = `${index * 0.05}s`;
                 card.innerHTML = `
@@ -586,15 +615,15 @@
                     <div class="p-4 flex-grow flex flex-col gap-2 bg-slate-800"><p class="font-bold text-slate-200 text-[13px] leading-snug line-clamp-3" title="${task.Tarea}">${task.Tarea}</p></div>
                     <div class="p-3 pt-0 bg-slate-800" id="actions-${task._id}">
                         <div class="flex gap-2">
-                            <button onclick="marcarOK('${task._id}')" class="flex-1 bg-slate-700/50 border border-slate-600 hover:border-emerald-500 hover:bg-emerald-500/10 text-slate-300 hover:text-emerald-400 font-bold py-2.5 rounded-xl text-[11px] transition-all duration-200 shadow-sm">OK</button>
-                            <button onclick="toggleNokPanel('${task._id}')" class="flex-1 bg-slate-700/50 border border-slate-600 hover:border-rose-500 hover:bg-rose-500/10 text-slate-300 hover:text-rose-400 font-bold py-2.5 rounded-xl text-[11px] transition-all duration-200 shadow-sm">FRAUDE</button>
+                            <button onclick="marcarOK('${safeId}')" class="flex-1 bg-slate-700/50 border border-slate-600 hover:border-emerald-500 hover:bg-emerald-500/10 text-slate-300 hover:text-emerald-400 font-bold py-2.5 rounded-xl text-[11px] transition-all duration-200 shadow-sm">OK</button>
+                            <button onclick="toggleNokPanel('${safeId}')" class="flex-1 bg-slate-700/50 border border-slate-600 hover:border-rose-500 hover:bg-rose-500/10 text-slate-300 hover:text-rose-400 font-bold py-2.5 rounded-xl text-[11px] transition-all duration-200 shadow-sm">FRAUDE</button>
                         </div>
                     </div>
                     <div class="hidden flex-col gap-2 p-3 bg-rose-900/20 border-t border-rose-800/50" id="nok-panel-${task._id}">
                         <select id="reason-${task._id}" class="w-full text-xs font-medium p-2 rounded-lg border border-rose-800/50 bg-slate-900 text-slate-200 focus:ring-2 focus:ring-rose-500 outline-none">
                             <option value="" disabled selected>Motivo...</option><option value="Misma foto adicional">Misma foto adicional</option><option value="Misma foto Diferente PDV">Misma foto Diferente PDV</option><option value="Misma foto Puntera">Misma foto Puntera</option><option value="Foto de Gondola">Foto de Gondola</option><option value="Foto EDF">Foto EDF</option><option value="Misma foto alterada">Misma foto alterada</option>
                         </select>
-                        <div class="flex gap-2"><button onclick="confirmarNOK('${task._id}')" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold py-1.5 rounded-lg text-[11px] shadow-[0_0_10px_rgba(225,29,72,0.4)]">Guardar</button><button onclick="toggleNokPanel('${task._id}')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-1.5 rounded-lg text-[11px]">Volver</button></div>
+                        <div class="flex gap-2"><button onclick="confirmarNOK('${safeId}')" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold py-1.5 rounded-lg text-[11px] shadow-[0_0_10px_rgba(225,29,72,0.4)]">Guardar</button><button onclick="toggleNokPanel('${safeId}')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-1.5 rounded-lg text-[11px]">Volver</button></div>
                     </div>
                 `;
                 DOM.cardsGrid.appendChild(card);
