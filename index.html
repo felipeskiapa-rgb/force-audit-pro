@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Botonera Reparada</title>
+    <title>ForceAudit Pro | Columna Fraude Activa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -23,6 +23,7 @@
         #dropdown-tarea::-webkit-scrollbar { width: 6px; height: 6px; }
         #dropdown-tarea::-webkit-scrollbar-track { background: transparent; }
         #dropdown-tarea::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }
+        #dropdown-tarea::-webkit-scrollbar-corner { background: transparent; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
@@ -52,6 +53,7 @@
 
             <div id="filtersSection" class="hidden pb-5 pt-2">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-4 w-full items-end">
+                    
                     <!-- Fila 1 -->
                     <div class="flex flex-col"><label class="filter-label text-indigo-400">Tipo de Tarea</label><select id="f-validez" class="w-full bg-indigo-900/30 border border-indigo-500/30 text-indigo-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-bold transition-all"><option value="validas" selected>Solo Válidas</option><option value="invalidas">Solo Inválidas</option><option value="todas">Ver Todas</option></select></div>
                     <div class="flex flex-col"><label class="filter-label">Estado Auditoría</label><select id="f-estado" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-semibold transition-all"><option value="">Todos</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select></div>
@@ -69,9 +71,7 @@
                             <span id="btn-tarea-text" class="truncate block pr-2">Todas las Tareas</span>
                             <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
-                        <div id="dropdown-tarea" class="hidden absolute top-full right-0 md:left-0 z-[100] w-full md:w-[400px] mt-1 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl max-h-64 overflow-auto">
-                            <!-- Inyectado JS -->
-                        </div>
+                        <div id="dropdown-tarea" class="hidden absolute top-full right-0 md:left-0 z-[100] w-full md:w-[400px] mt-1 bg-slate-800 border border-slate-600 rounded-xl shadow-2xl max-h-64 overflow-auto"></div>
                     </div>
                     
                     <select id="f-promotor" class="hidden"><option value=""></option></select>
@@ -330,7 +330,9 @@
             let payload;
             if (isFullSync) {
                 const rawDataArray = Array.from(rawDataMap.values());
-                const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !['_id', 'auditStatus', 'auditReason', 'auditDate'].includes(k));
+                // Agregamos 'Fraude' a las columnas reservadas internas
+                const internalKeys = ['_id', 'auditStatus', 'auditReason', 'auditDate', 'Fraude', 'Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'];
+                const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !internalKeys.includes(k));
                 
                 const exactOrder = [
                     'Dia', 'Rol_Promotor', 'Promotor', 'Cod_Distribuidor', 'Distribuidor_Directa', 
@@ -351,28 +353,44 @@
                 });
                 
                 originalHeaders.forEach(col => {
-                    const isAudit = ['Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'].map(a=>a.toLowerCase()).includes(col.toLowerCase());
+                    const isAudit = ['Fraude', 'Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'].map(a=>a.toLowerCase()).includes(col.toLowerCase());
                     if (!finalHeaders.includes(col) && !isAudit) { finalHeaders.push(col); }
                 });
                 
-                finalHeaders.push('Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
+                // NUEVA ESTRUCTURA FINAL: Fraude -> Acreditacion -> Motivo_Fraude -> Fecha_Revision
+                finalHeaders.push('Fraude', 'Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
 
                 const exportData = rawDataArray.map(row => {
                     let newRow = {}; 
                     finalHeaders.forEach(header => {
-                        if (['_id', 'auditStatus', 'auditReason', 'auditDate'].includes(header)) return;
+                        if (internalKeys.includes(header)) return;
                         newRow[header] = row[header] !== undefined ? row[header] : '';
                     });
 
                     let acreditacionValue = '';
-                    if (row.auditStatus === 'OK') { acreditacionValue = 'acreditar'; } 
-                    else if (row.auditStatus === 'NOK') { acreditacionValue = 'no acreditar'; } 
-                    else {
-                        const isValid = (row.Validada == 1 || row.Validada === '1' || String(row.Validada).trim().toLowerCase() === 'true');
-                        if (!isValid) { acreditacionValue = 'no acreditar'; } else { acreditacionValue = 'acreditar'; }
+                    let fraudeValue = '';
+                    const isValidSystem = (row.Validada == 1 || row.Validada === '1' || String(row.Validada).trim().toLowerCase() === 'true');
+
+                    if (row.auditStatus === 'OK') { 
+                        acreditacionValue = 'acreditar'; 
+                        fraudeValue = 'Valida';
+                    } else if (row.auditStatus === 'NOK') { 
+                        acreditacionValue = 'no acreditar'; 
+                        fraudeValue = 'Fraude';
+                    } else {
+                        if (!isValidSystem) { 
+                            acreditacionValue = 'no acreditar'; 
+                            fraudeValue = 'Invalida';
+                        } else { 
+                            acreditacionValue = 'acreditar'; 
+                            fraudeValue = 'Valida';
+                        }
                     }
 
-                    newRow['Acreditacion'] = acreditacionValue; newRow['Motivo_Fraude'] = row.auditReason || ''; newRow['Fecha_Revision'] = row.auditDate || '';
+                    newRow['Fraude'] = fraudeValue;
+                    newRow['Acreditacion'] = acreditacionValue; 
+                    newRow['Motivo_Fraude'] = row.auditReason || ''; 
+                    newRow['Fecha_Revision'] = row.auditDate || '';
                     return newRow;
                 });
                 payload = { delta: false, csvContent: Papa.unparse(exportData) };
@@ -404,7 +422,20 @@
         }
 
         function registerChange(task) {
-            pendingChanges.set(task._id, { Task_ID: task.Task_ID, Acreditacion: task.auditStatus === 'NOK' ? 'no acreditar' : 'acreditar', Motivo_Fraude: task.auditReason, Fecha_Revision: task.auditDate });
+            // Evaluamos el estado real para la columna nueva de Fraude al guardar un cambio individual
+            const isValidSystem = (task.Validada == 1 || task.Validada === '1' || String(task.Validada).trim().toLowerCase() === 'true');
+            let fVal = 'Valida';
+            if (task.auditStatus === 'NOK') fVal = 'Fraude';
+            else if (task.auditStatus === 'OK') fVal = 'Valida';
+            else fVal = isValidSystem ? 'Valida' : 'Invalida';
+
+            pendingChanges.set(task._id, { 
+                Task_ID: task.Task_ID, 
+                Fraude: fVal,
+                Acreditacion: task.auditStatus === 'NOK' ? 'no acreditar' : 'acreditar', 
+                Motivo_Fraude: task.auditReason, 
+                Fecha_Revision: task.auditDate 
+            });
         }
 
         window.marcarOK = (id) => { 
@@ -607,6 +638,8 @@
                 const safeId = task._id ? task._id.replace(/'/g, "\\'") : '';
                 const card = document.createElement('div');
                 card.id = `card-${task._id}`; card.className = `card-animate bg-slate-800 rounded-2xl border ${borderClass} overflow-hidden flex flex-col relative transition-all duration-300 hover:border-indigo-500/50 group`; card.style.animationDelay = `${index * 0.05}s`;
+                
+                // Agregamos las nuevas opciones "No es puntera" y "Otros" al select
                 card.innerHTML = `
                     <div class="relative bg-slate-900 overflow-hidden cursor-zoom-in border-b border-slate-700/50" onclick="window.open('${imgSrc}', '_blank')">${statusBadge}
                         <img loading="lazy" src="${imgSrc}" class="w-full h-48 object-contain group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100" alt="Ejecución">
@@ -621,7 +654,15 @@
                     </div>
                     <div class="hidden flex-col gap-2 p-3 bg-rose-900/20 border-t border-rose-800/50" id="nok-panel-${task._id}">
                         <select id="reason-${task._id}" class="w-full text-xs font-medium p-2 rounded-lg border border-rose-800/50 bg-slate-900 text-slate-200 focus:ring-2 focus:ring-rose-500 outline-none">
-                            <option value="" disabled selected>Motivo...</option><option value="Misma foto adicional">Misma foto adicional</option><option value="Misma foto Diferente PDV">Misma foto Diferente PDV</option><option value="Misma foto Puntera">Misma foto Puntera</option><option value="Foto de Gondola">Foto de Gondola</option><option value="Foto EDF">Foto EDF</option><option value="Misma foto alterada">Misma foto alterada</option>
+                            <option value="" disabled selected>Motivo...</option>
+                            <option value="Misma foto adicional">Misma foto adicional</option>
+                            <option value="Misma foto Diferente PDV">Misma foto Diferente PDV</option>
+                            <option value="Misma foto Puntera">Misma foto Puntera</option>
+                            <option value="Foto de Gondola">Foto de Gondola</option>
+                            <option value="Foto EDF">Foto EDF</option>
+                            <option value="Misma foto alterada">Misma foto alterada</option>
+                            <option value="No es puntera">No es puntera</option>
+                            <option value="Otros">Otros</option>
                         </select>
                         <div class="flex gap-2"><button onclick="confirmarNOK('${safeId}')" class="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold py-1.5 rounded-lg text-[11px] shadow-[0_0_10px_rgba(225,29,72,0.4)]">Guardar</button><button onclick="toggleNokPanel('${safeId}')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-1.5 rounded-lg text-[11px]">Volver</button></div>
                     </div>
