@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ForceAudit Pro | Columna Fraude Activa</title>
+    <title>ForceAudit Pro | Anti-Caché Activado</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -53,7 +53,6 @@
 
             <div id="filtersSection" class="hidden pb-5 pt-2">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-4 w-full items-end">
-                    
                     <!-- Fila 1 -->
                     <div class="flex flex-col"><label class="filter-label text-indigo-400">Tipo de Tarea</label><select id="f-validez" class="w-full bg-indigo-900/30 border border-indigo-500/30 text-indigo-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-bold transition-all"><option value="validas" selected>Solo Válidas</option><option value="invalidas">Solo Inválidas</option><option value="todas">Ver Todas</option></select></div>
                     <div class="flex flex-col"><label class="filter-label">Estado Auditoría</label><select id="f-estado" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-semibold transition-all"><option value="">Todos</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select></div>
@@ -237,7 +236,10 @@
         window.onload = async () => {
             try {
                 DOM.loadingText.textContent = "Conectando con Google Drive...";
-                const res = await fetch(GAS_API_URL);
+                // IMPORTANTE: Le pasamos la hora actual al enlace de descarga para EVITAR EL CACHÉ y forzar a que baje lo nuevo del día 19.
+                const nocacheURL = GAS_API_URL + "?t=" + new Date().getTime();
+                
+                const res = await fetch(nocacheURL);
                 const response = await res.json();
                 
                 if(!response.success) { alert("Error: " + response.error); DOM.loadingText.textContent = "Error al conectar."; return; }
@@ -330,7 +332,6 @@
             let payload;
             if (isFullSync) {
                 const rawDataArray = Array.from(rawDataMap.values());
-                // Agregamos 'Fraude' a las columnas reservadas internas
                 const internalKeys = ['_id', 'auditStatus', 'auditReason', 'auditDate', 'Fraude', 'Acreditacion', 'Motivo_Fraude', 'Fecha_Revision'];
                 const originalHeaders = Object.keys(rawDataArray[0]).filter(k => !internalKeys.includes(k));
                 
@@ -357,7 +358,6 @@
                     if (!finalHeaders.includes(col) && !isAudit) { finalHeaders.push(col); }
                 });
                 
-                // NUEVA ESTRUCTURA FINAL: Fraude -> Acreditacion -> Motivo_Fraude -> Fecha_Revision
                 finalHeaders.push('Fraude', 'Acreditacion', 'Motivo_Fraude', 'Fecha_Revision');
 
                 const exportData = rawDataArray.map(row => {
@@ -422,16 +422,9 @@
         }
 
         function registerChange(task) {
-            // Evaluamos el estado real para la columna nueva de Fraude al guardar un cambio individual
-            const isValidSystem = (task.Validada == 1 || task.Validada === '1' || String(task.Validada).trim().toLowerCase() === 'true');
-            let fVal = 'Valida';
-            if (task.auditStatus === 'NOK') fVal = 'Fraude';
-            else if (task.auditStatus === 'OK') fVal = 'Valida';
-            else fVal = isValidSystem ? 'Valida' : 'Invalida';
-
+            // Eliminamos "Fraude" de este envío rápido para que Código.gs no se rompa por no conocer la variable.
             pendingChanges.set(task._id, { 
                 Task_ID: task.Task_ID, 
-                Fraude: fVal,
                 Acreditacion: task.auditStatus === 'NOK' ? 'no acreditar' : 'acreditar', 
                 Motivo_Fraude: task.auditReason, 
                 Fecha_Revision: task.auditDate 
@@ -636,16 +629,25 @@
                 else if (task.auditStatus === 'NOK') { borderClass = 'card-nok'; statusBadge = `<div class="absolute top-3 right-3 bg-rose-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-[0_0_10px_rgba(244,63,94,0.5)] border border-rose-400 z-10" title="${task.auditReason}">FRAUDE</div>`; }
 
                 const safeId = task._id ? task._id.replace(/'/g, "\\'") : '';
+                
+                const promotorName = task.Promotor || 'Sin Nombre';
+                const promotorRole = task.Rol_Promotor ? `(${task.Rol_Promotor})` : '';
+
                 const card = document.createElement('div');
                 card.id = `card-${task._id}`; card.className = `card-animate bg-slate-800 rounded-2xl border ${borderClass} overflow-hidden flex flex-col relative transition-all duration-300 hover:border-indigo-500/50 group`; card.style.animationDelay = `${index * 0.05}s`;
                 
-                // Agregamos las nuevas opciones "No es puntera" y "Otros" al select
                 card.innerHTML = `
                     <div class="relative bg-slate-900 overflow-hidden cursor-zoom-in border-b border-slate-700/50" onclick="window.open('${imgSrc}', '_blank')">${statusBadge}
                         <img loading="lazy" src="${imgSrc}" class="w-full h-48 object-contain group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100" alt="Ejecución">
                         <div class="absolute bottom-2 right-2 bg-slate-900/60 backdrop-blur-md text-white text-[10px] px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-medium border border-slate-700">Ampliar</div>
                     </div>
-                    <div class="p-4 flex-grow flex flex-col gap-2 bg-slate-800"><p class="font-bold text-slate-200 text-[13px] leading-snug line-clamp-3" title="${task.Tarea}">${task.Tarea}</p></div>
+                    <div class="p-4 flex-grow flex flex-col gap-1.5 bg-slate-800">
+                        <p class="font-bold text-slate-200 text-[13px] leading-snug line-clamp-2" title="${task.Tarea}">${task.Tarea}</p>
+                        <div class="flex items-center gap-1.5 mt-auto pt-2 border-t border-slate-700/50">
+                            <svg class="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            <p class="text-[10px] font-semibold text-slate-400 truncate" title="${promotorName} ${promotorRole}">${promotorName} <span class="text-slate-500 font-medium">${promotorRole}</span></p>
+                        </div>
+                    </div>
                     <div class="p-3 pt-0 bg-slate-800" id="actions-${task._id}">
                         <div class="flex gap-2">
                             <button onclick="marcarOK('${safeId}')" class="flex-1 bg-slate-700/50 border border-slate-600 hover:border-emerald-500 hover:bg-emerald-500/10 text-slate-300 hover:text-emerald-400 font-bold py-2.5 rounded-xl text-[11px] transition-all duration-200 shadow-sm">OK</button>
