@@ -33,7 +33,7 @@
             <div class="py-4 flex justify-between items-center">
                 <div class="flex items-center gap-4">
                     <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-2.5 rounded-xl text-white shadow-[0_0_15px_rgba(99,102,241,0.4)]">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                     </div>
                     <div>
                         <h1 class="text-xl font-extrabold text-white tracking-tight">ForceAudit Pro</h1>
@@ -59,13 +59,11 @@
             <div id="filtersSection" class="hidden pb-5 pt-2">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-4 w-full items-end">
                     
-                    <!-- Fila 1 -->
                     <div class="flex flex-col"><label class="filter-label text-indigo-400">Tipo de Tarea</label><select id="f-validez" class="w-full bg-indigo-900/30 border border-indigo-500/30 text-indigo-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-bold transition-all"><option value="validas" selected>Solo Válidas</option><option value="invalidas">Solo Inválidas</option><option value="todas">Ver Todas</option></select></div>
                     <div class="flex flex-col"><label class="filter-label">Estado Auditoría</label><select id="f-estado" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-semibold transition-all"><option value="">Todos</option><option value="pendientes">Pendientes</option><option value="revisadas">Ya Revisadas</option></select></div>
                     <div class="flex flex-col"><label class="filter-label">Día</label><select id="f-dia" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select></div>
                     <div class="flex flex-col"><label class="filter-label">Región</label><select id="f-region" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todas</option></select></div>
 
-                    <!-- Fila 2 -->
                     <div class="flex flex-col"><label class="filter-label">Supervisor</label><select id="f-supervisor" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select></div>
                     <div class="flex flex-col"><label class="filter-label">Distribuidor</label><select id="f-distri" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select></div>
                     <div class="flex flex-col"><label class="filter-label">Negocio</label><select id="f-negocio" class="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-xl py-2 px-3 focus:ring-2 focus:ring-indigo-500 font-medium truncate transition-all"><option value="">Todos</option></select></div>
@@ -100,9 +98,9 @@
             <div class="bg-amber-900/20 rounded-2xl p-4 border border-amber-500/20 flex flex-col justify-center"><p class="text-[10px] text-amber-500 font-bold uppercase tracking-widest mb-1">% Fraude</p><p class="text-2xl font-extrabold text-amber-400" id="kpiPorcentaje">0%</p></div>
         </div>
 
-        <div id="loadingIndicator" class="flex flex-col items-center justify-center py-32"><div class="relative w-16 h-16 mb-6"><div class="absolute inset-0 border-4 border-slate-800 rounded-full"></div><div class="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin"></div></div><h2 class="text-xl font-bold text-white">Conectando con Servidor...</h2><p class="text-slate-400 mt-2 text-sm font-medium" id="loadingText">Leyendo base de datos</p></div>
+        <div id="loadingIndicator" class="flex flex-col items-center justify-center py-32"><div class="relative w-16 h-16 mb-6"><div class="absolute inset-0 border-4 border-slate-800 rounded-full"></div><div class="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin"></div></div><h2 class="text-xl font-bold text-white">Conectando con Google Drive...</h2><p class="text-slate-400 mt-2 text-sm font-medium" id="loadingText">Por favor esperá</p></div>
 
-        <div id="startState" class="hidden flex-col items-center justify-center py-20 text-center"><div class="bg-slate-800/50 p-6 rounded-3xl border border-slate-700 mb-5 inline-block"><svg class="w-12 h-12 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div><h2 class="text-2xl font-bold text-white tracking-tight" id="lblSuccess">Listo para Trabajar</h2><p class="text-slate-400 mt-2 max-w-md mx-auto">Seleccioná un filtro arriba para comenzar a auditar.</p></div>
+        <div id="startState" class="hidden flex-col items-center justify-center py-20 text-center"><div class="bg-slate-800/50 p-6 rounded-3xl border border-slate-700 mb-5 inline-block"><svg class="w-12 h-12 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div><h2 class="text-2xl font-bold text-white tracking-tight" id="lblSuccess">Sincronización Completa</h2><p class="text-slate-400 mt-2 max-w-md mx-auto">Seleccioná un filtro arriba para comenzar a auditar.</p></div>
         <div id="noResults" class="hidden flex-col items-center justify-center py-20 text-center"><h2 class="text-xl font-bold text-white tracking-tight">No hay tareas para estos filtros</h2></div>
 
         <div id="pdvWorkspace" class="hidden flex-col flex-grow">
@@ -179,7 +177,7 @@
 
         window.onload = async () => {
             try {
-                DOM.loadingText.textContent = "Conectando con Servidor...";
+                DOM.loadingText.textContent = "Conectando con Google Drive...";
                 const nocacheURL = GAS_API_URL + "?t=" + new Date().getTime();
                 const res = await fetch(nocacheURL);
                 const response = await res.json();
@@ -187,40 +185,47 @@
                 if(!response.success) { alert("Error: " + response.error); DOM.loadingText.textContent = "Error al conectar."; return; }
                 
                 if (response.wasMerged) {
-                    DOM.loadingText.textContent = "Actualizando tareas nuevas desde el servidor...";
+                    DOM.loadingText.textContent = "El servidor cruzó tareas nuevas. Descargando...";
                 } else {
-                    DOM.loadingText.textContent = "Cargando base de datos...";
+                    DOM.loadingText.textContent = "Procesando tareas en tu computadora...";
                 }
 
                 if (response.masterContent && response.masterContent.trim() !== '') {
+                    // Quitamos worker:true para que no se trabe el navegador en pcs con poca memoria
                     Papa.parse(response.masterContent, {
-                        header: true, skipEmptyLines: true, worker: true,
+                        header: true, skipEmptyLines: true,
                         complete: (masterRes) => {
-                            let parsed = [];
-                            rawDataMap.clear();
-                            masterRes.data.forEach(row => {
-                                if (row.Task_ID) {
-                                    row._id = row.Task_ID.toString();
-                                    if (row.Cod_Cliente) row.Cod_Cliente = formatCodCliente(row.Cod_Cliente);
-                                    let status = null;
-                                    if (row.Fecha_Revision && row.Fecha_Revision.trim() !== '') {
-                                        if (row.Acreditacion === 'acreditar') status = 'OK';
-                                        else if (row.Acreditacion === 'no acreditar' && row.Motivo_Fraude) status = 'NOK';
+                            try {
+                                let parsed = [];
+                                masterRes.data.forEach(row => {
+                                    if (row.Task_ID) {
+                                        row._id = row.Task_ID.toString();
+                                        if (row.Cod_Cliente) row.Cod_Cliente = formatCodCliente(row.Cod_Cliente);
+                                        
+                                        let status = null;
+                                        if (row.Fecha_Revision && row.Fecha_Revision.trim() !== '') {
+                                            if (row.Acreditacion === 'acreditar') status = 'OK';
+                                            else if (row.Acreditacion === 'no acreditar' && row.Motivo_Fraude) status = 'NOK';
+                                        }
+                                        row.auditStatus = status; 
+                                        row.auditReason = row.Motivo_Fraude || ''; 
+                                        row.auditDate = row.Fecha_Revision || '';
+                                        
+                                        parsed.push(row);
+                                        rawDataMap.set(row._id, row);
                                     }
-                                    row.auditStatus = status; 
-                                    row.auditReason = row.Motivo_Fraude || ''; 
-                                    row.auditDate = row.Fecha_Revision || '';
-                                    parsed.push(row);
-                                    rawDataMap.set(row._id, row);
-                                }
-                            });
-                            allTasks = parsed;
-                            finalizeDataLoad();
+                                });
+                                allTasks = parsed;
+                                finalizeDataLoad();
+                            } catch(err) {
+                                alert("Error procesando los datos: " + err.message);
+                                DOM.loading.classList.add('hidden');
+                            }
                         }
                     });
                 } else {
                     alert("Aún no se ha subido una base de tareas inicial a Google Drive.");
-                    DOM.loadingText.textContent = "Base vacía.";
+                    DOM.loading.classList.add('hidden');
                 }
             } catch(e) { alert("Error crítico de conexión: " + e); DOM.loading.classList.add('hidden'); }
         };
@@ -231,6 +236,7 @@
             DOM.loading.classList.add('hidden');
             initFilters(); updateDashboard(false); 
             DOM.dashboardStats.classList.remove('hidden'); DOM.startState.classList.remove('hidden'); DOM.startState.classList.add('flex');
+            
             DOM.btnSaveDrive.classList.remove('hidden'); 
             DOM.btnDownload.classList.remove('hidden'); 
         }
@@ -310,7 +316,7 @@
             
             if(!isAutoSave) { DOM.btnSaveDrive.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Guardando en Drive...'; }
 
-            let payload = { action: 'update_deltas', delta: true, changes: Array.from(pendingChanges.values()) };
+            let payload = { delta: true, changes: Array.from(pendingChanges.values()) };
 
             try {
                 const req = await fetch(GAS_API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
